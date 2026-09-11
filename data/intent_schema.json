@@ -1,0 +1,168 @@
+{
+  "intents": [
+    {
+      "confusing_neighbors": [
+        "DELIVERY_DAMAGE",
+        "PRIME_SUBSCRIPTION"
+      ],
+      "definition": "Customer asking about order tracking, delivery time, shipment updates, estimated arrival, or an order action such as cancellation.",
+      "examples": [
+        "Where is my order? It's been 5 days!",
+        "My tracking number says delivered but I got nothing.",
+        "Can you tell me when my package will arrive?",
+        "Order #112-XXXXXXX hasn't shipped yet."
+      ],
+      "exclude": [
+        "damage reports or missing items (DELIVERY_DAMAGE)",
+        "Prime membership billing questions (PRIME_SUBSCRIPTION)",
+        "vague venting with no order question (GENERAL_COMPLAINT)"
+      ],
+      "include": [
+        "tracking and where-is-my-order questions",
+        "delivery time and delay complaints",
+        "cancel-order requests",
+        "non-delivery (marked delivered, never arrived)"
+      ],
+      "name": "ORDER_STATUS"
+    },
+    {
+      "confusing_neighbors": [
+        "DELIVERY_DAMAGE",
+        "ORDER_STATUS"
+      ],
+      "definition": "Customer requesting a return, refund, replacement, or reporting a wrong item delivered.",
+      "examples": [
+        "I want to return this product.",
+        "I received the wrong item. How do I get a refund?",
+        "My refund still hasn't hit my account after 10 days.",
+        "Can I exchange this for a different size?"
+      ],
+      "exclude": [
+        "items damaged in transit (DELIVERY_DAMAGE)",
+        "refund timing questions with no return action (often still RETURN_REFUND â€” prefer this when money-back is the ask)"
+      ],
+      "include": [
+        "return and exchange requests",
+        "refund status and missing refunds",
+        "wrong-item replacement",
+        "return-label problems"
+      ],
+      "name": "RETURN_REFUND"
+    },
+    {
+      "confusing_neighbors": [
+        "PRIME_SUBSCRIPTION"
+      ],
+      "definition": "Customer unable to access their account or questioning account/billing integrity.",
+      "examples": [
+        "I can't log into my Amazon account.",
+        "My account has been locked and I don't know why.",
+        "Someone got into my account – please help!",
+        "I'm not receiving the OTP for sign-in."
+      ],
+      "exclude": [
+        "Prime membership benefit questions (PRIME_SUBSCRIPTION)",
+        "device setup issues (DEVICE_TECH_SUPPORT)"
+      ],
+      "include": [
+        "login, password, OTP and 2FA problems",
+        "locked, suspended or blocked accounts",
+        "unauthorized access and hacking reports",
+        "mystery charges and billing confusion"
+      ],
+      "name": "ACCOUNT_ACCESS"
+    },
+    {
+      "confusing_neighbors": [
+        "ACCOUNT_ACCESS",
+        "ORDER_STATUS"
+      ],
+      "definition": "Questions about the Prime membership itself: billing, cancellation, trial, benefits.",
+      "examples": [
+        "How do I cancel my Prime subscription?",
+        "I was charged for Prime but I thought I cancelled.",
+        "My Prime free shipping isn't working.",
+        "Prime Video isn't showing in my benefits."
+      ],
+      "include": [
+        "Prime billing, charges and free-trial confusion",
+        "Prime cancellation requests",
+        "Prime benefit failures (shipping, video, music)"
+      ],
+      "name": "PRIME_SUBSCRIPTION",
+      "exclude": [
+        "account access problems unrelated to Prime (ACCOUNT_ACCESS)",
+        "late delivery complaints that never mention membership (ORDER_STATUS)"
+      ]
+    },
+    {
+      "confusing_neighbors": [
+        "ORDER_STATUS"
+      ],
+      "definition": "Problems with Amazon hardware devices or their companion apps.",
+      "examples": [
+        "My Alexa isn't responding to commands.",
+        "Kindle won't charge even with the original cable.",
+        "Fire TV keeps crashing after the latest update.",
+        "Echo dot won't connect to my WiFi."
+      ],
+      "exclude": [
+        "delivery of a device (ORDER_STATUS)",
+        "digital-purchase delivery to Kindle (ORDER_STATUS)"
+      ],
+      "include": [
+        "Alexa, Echo, Kindle, Fire TV/Stick, Ring malfunctions",
+        "device connectivity, update and reset issues",
+        "companion-app functional problems"
+      ],
+      "name": "DEVICE_TECH_SUPPORT"
+    },
+    {
+      "confusing_neighbors": [
+        "ORDER_STATUS",
+        "RETURN_REFUND"
+      ],
+      "definition": "A delivered package or item arrived damaged, with missing contents, or went to the wrong address.",
+      "examples": [
+        "My package arrived completely crushed.",
+        "The box was open and one item is missing.",
+        "Delivered to wrong address – neighbour has my package.",
+        "Product inside was broken, box looked fine."
+      ],
+      "exclude": [
+        "marked-delivered-but-never-arrived with no damage info (ORDER_STATUS)",
+        "post-damage refund requests (RETURN_REFUND once money is the ask)"
+      ],
+      "include": [
+        "crushed, broken or tampered packaging",
+        "missing items from the box",
+        "wrong-address delivery"
+      ],
+      "name": "DELIVERY_DAMAGE"
+    },
+    {
+      "confusing_neighbors": [
+        "ORDER_STATUS",
+        "PRIME_SUBSCRIPTION"
+      ],
+      "definition": "Vague frustration with no clearly actionable request; the catch-all when nothing specific fits.",
+      "examples": [
+        "Amazon has the WORST customer service ever.",
+        "I'm done with Amazon after this experience.",
+        "This is absolutely ridiculous!",
+        "I am beyond frustrated right now."
+      ],
+      "exclude": [
+        "any message with a concrete order/return/account/device ask (route there instead)"
+      ],
+      "include": [
+        "venting and threats to leave",
+        "feature requests and policy questions with no specific intent",
+        "uninterpretable messages"
+      ],
+      "name": "GENERAL_COMPLAINT"
+    }
+  ],
+  "process": "Keyword-clustered EDA over AmazonHelp threads suggested the families; boundaries (notably late-vs-lost and damage-vs-refund) were set by reading 200 golden rows during human review (apply_review.py). GENERAL_COMPLAINT is the explicit catch-all per classifier rules.",
+  "version": "v1-2026-09-10"
+}

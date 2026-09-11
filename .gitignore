@@ -1,0 +1,57 @@
+# Environment & secrets — NEVER commit these
+.env
+*.env
+!.env.example
+
+# Temporary / Generated HTML files
+*.html
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data — large files (rebuildable via src/data_prep.py + src/qdrant_store.py --build)
+data/raw/
+data/processed/
+
+# Results — COMMITTED on purpose: eval evidence ships with the repo.
+# (Regenerate any time with: python run_eval.py --baselines)
+# results/
+
+# Smoke-test outputs — never commit (fast/offline runs write here by default)
+results_fast/
+results_offline/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

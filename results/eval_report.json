@@ -1,0 +1,579 @@
+{
+  "provenance": {
+    "timestamp_utc": "2026-09-10T13:39:27+00:00",
+    "mode": "live",
+    "golden": "D:\\NExp2-13\\golden_set\\golden_250.csv",
+    "classifier_model": "gemini-3.1-flash-lite",
+    "drafter_model": "gemini-3.1-flash-lite",
+    "judge_model": "gemini-3.1-flash-lite",
+    "top_k_retrieval": 5,
+    "embed_model": "models/gemini-embedding-001",
+    "seed": 42
+  },
+  "num_examples": 250,
+  "qdrant_used": true,
+  "intent_classification": {
+    "accuracy": 0.82,
+    "macro_f1": 0.8094,
+    "weighted_f1": 0.8134,
+    "per_class": {
+      "ORDER_STATUS": {
+        "precision": 0.75,
+        "recall": 0.873,
+        "f1": 0.807
+      },
+      "RETURN_REFUND": {
+        "precision": 0.913,
+        "recall": 0.933,
+        "f1": 0.923
+      },
+      "ACCOUNT_ACCESS": {
+        "precision": 1.0,
+        "recall": 0.68,
+        "f1": 0.81
+      },
+      "PRIME_SUBSCRIPTION": {
+        "precision": 0.857,
+        "recall": 0.429,
+        "f1": 0.571
+      },
+      "DEVICE_TECH_SUPPORT": {
+        "precision": 0.913,
+        "recall": 0.875,
+        "f1": 0.894
+      },
+      "DELIVERY_DAMAGE": {
+        "precision": 0.828,
+        "recall": 0.923,
+        "f1": 0.873
+      },
+      "GENERAL_COMPLAINT": {
+        "precision": 0.719,
+        "recall": 0.872,
+        "f1": 0.788
+      }
+    },
+    "confusion_matrix": [
+      [
+        48,
+        0,
+        0,
+        1,
+        1,
+        2,
+        3
+      ],
+      [
+        2,
+        42,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        2,
+        1,
+        17,
+        1,
+        1,
+        0,
+        3
+      ],
+      [
+        6,
+        1,
+        0,
+        12,
+        0,
+        1,
+        8
+      ],
+      [
+        1,
+        1,
+        0,
+        0,
+        21,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        24,
+        1
+      ],
+      [
+        4,
+        1,
+        0,
+        0,
+        0,
+        1,
+        41
+      ]
+    ],
+    "labels": [
+      "ORDER_STATUS",
+      "RETURN_REFUND",
+      "ACCOUNT_ACCESS",
+      "PRIME_SUBSCRIPTION",
+      "DEVICE_TECH_SUPPORT",
+      "DELIVERY_DAMAGE",
+      "GENERAL_COMPLAINT"
+    ]
+  },
+  "intent_ci": {
+    "accuracy_95": {
+      "metric": "accuracy",
+      "n": 250,
+      "n_boot": 1000,
+      "lo_95": 0.768,
+      "hi_95": 0.864
+    },
+    "macro_f1_95": {
+      "metric": "macro_f1",
+      "n": 250,
+      "n_boot": 1000,
+      "lo_95": 0.7532,
+      "hi_95": 0.8545
+    }
+  },
+  "escalation": {
+    "accuracy": 0.964,
+    "precision": 0.8667,
+    "recall": 0.9811,
+    "f1": 0.9204,
+    "false_auto_handle_rate": 0.0189,
+    "confusion_matrix": [
+      [
+        189,
+        8
+      ],
+      [
+        1,
+        52
+      ]
+    ],
+    "labels": [
+      "auto_handle",
+      "escalate"
+    ]
+  },
+  "escalation_ci": {
+    "recall_95": {
+      "metric": "recall",
+      "n": 250,
+      "n_boot": 1000,
+      "lo_95": 0.9375,
+      "hi_95": 1.0
+    }
+  },
+  "baselines": {
+    "trivial_b0": {
+      "accuracy": 0.22,
+      "macro_f1": 0.0515,
+      "weighted_f1": 0.0793,
+      "per_class": {
+        "ORDER_STATUS": {
+          "precision": 0.22,
+          "recall": 1.0,
+          "f1": 0.361
+        },
+        "RETURN_REFUND": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "ACCOUNT_ACCESS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PRIME_SUBSCRIPTION": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "DEVICE_TECH_SUPPORT": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "DELIVERY_DAMAGE": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "GENERAL_COMPLAINT": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          55,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          45,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          25,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          28,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          26,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          47,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "labels": [
+        "ORDER_STATUS",
+        "RETURN_REFUND",
+        "ACCOUNT_ACCESS",
+        "PRIME_SUBSCRIPTION",
+        "DEVICE_TECH_SUPPORT",
+        "DELIVERY_DAMAGE",
+        "GENERAL_COMPLAINT"
+      ]
+    },
+    "tfidf_b1": {
+      "accuracy": 0.508,
+      "macro_f1": 0.464,
+      "weighted_f1": 0.4785,
+      "per_class": {
+        "ORDER_STATUS": {
+          "precision": 0.457,
+          "recall": 0.873,
+          "f1": 0.6
+        },
+        "RETURN_REFUND": {
+          "precision": 0.938,
+          "recall": 0.333,
+          "f1": 0.492
+        },
+        "ACCOUNT_ACCESS": {
+          "precision": 0.833,
+          "recall": 0.4,
+          "f1": 0.541
+        },
+        "PRIME_SUBSCRIPTION": {
+          "precision": 0.708,
+          "recall": 0.607,
+          "f1": 0.654
+        },
+        "DEVICE_TECH_SUPPORT": {
+          "precision": 0.6,
+          "recall": 0.5,
+          "f1": 0.545
+        },
+        "DELIVERY_DAMAGE": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "GENERAL_COMPLAINT": {
+          "precision": 0.342,
+          "recall": 0.532,
+          "f1": 0.417
+        }
+      },
+      "confusion_matrix": [
+        [
+          48,
+          0,
+          0,
+          1,
+          3,
+          0,
+          3
+        ],
+        [
+          16,
+          15,
+          2,
+          1,
+          0,
+          0,
+          11
+        ],
+        [
+          3,
+          0,
+          10,
+          2,
+          1,
+          0,
+          9
+        ],
+        [
+          6,
+          0,
+          0,
+          17,
+          0,
+          0,
+          5
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          12,
+          0,
+          10
+        ],
+        [
+          14,
+          1,
+          0,
+          1,
+          0,
+          0,
+          10
+        ],
+        [
+          17,
+          0,
+          0,
+          1,
+          4,
+          0,
+          25
+        ]
+      ],
+      "labels": [
+        "ORDER_STATUS",
+        "RETURN_REFUND",
+        "ACCOUNT_ACCESS",
+        "PRIME_SUBSCRIPTION",
+        "DEVICE_TECH_SUPPORT",
+        "DELIVERY_DAMAGE",
+        "GENERAL_COMPLAINT"
+      ]
+    },
+    "b1_training": {
+      "source": "amazon_threads.jsonl first_customer_message",
+      "n_train": 8000,
+      "labels": "keyword-heuristic (never golden/heldout human labels)",
+      "excluded_eval_threads": 297,
+      "seed": 42,
+      "vectorizer": "TfidfVectorizer(1-2gram, 8000, sublinear)",
+      "model": "LogisticRegression(C=1.0, max_iter=1000)"
+    },
+    "agent": {
+      "accuracy": 0.82,
+      "macro_f1": 0.8094,
+      "weighted_f1": 0.8134,
+      "per_class": {
+        "ORDER_STATUS": {
+          "precision": 0.75,
+          "recall": 0.873,
+          "f1": 0.807
+        },
+        "RETURN_REFUND": {
+          "precision": 0.913,
+          "recall": 0.933,
+          "f1": 0.923
+        },
+        "ACCOUNT_ACCESS": {
+          "precision": 1.0,
+          "recall": 0.68,
+          "f1": 0.81
+        },
+        "PRIME_SUBSCRIPTION": {
+          "precision": 0.857,
+          "recall": 0.429,
+          "f1": 0.571
+        },
+        "DEVICE_TECH_SUPPORT": {
+          "precision": 0.913,
+          "recall": 0.875,
+          "f1": 0.894
+        },
+        "DELIVERY_DAMAGE": {
+          "precision": 0.828,
+          "recall": 0.923,
+          "f1": 0.873
+        },
+        "GENERAL_COMPLAINT": {
+          "precision": 0.719,
+          "recall": 0.872,
+          "f1": 0.788
+        }
+      },
+      "confusion_matrix": [
+        [
+          48,
+          0,
+          0,
+          1,
+          1,
+          2,
+          3
+        ],
+        [
+          2,
+          42,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          2,
+          1,
+          17,
+          1,
+          1,
+          0,
+          3
+        ],
+        [
+          6,
+          1,
+          0,
+          12,
+          0,
+          1,
+          8
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          21,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          24,
+          1
+        ],
+        [
+          4,
+          1,
+          0,
+          0,
+          0,
+          1,
+          41
+        ]
+      ],
+      "labels": [
+        "ORDER_STATUS",
+        "RETURN_REFUND",
+        "ACCOUNT_ACCESS",
+        "PRIME_SUBSCRIPTION",
+        "DEVICE_TECH_SUPPORT",
+        "DELIVERY_DAMAGE",
+        "GENERAL_COMPLAINT"
+      ]
+    }
+  },
+  "reply_quality_judge": {
+    "mean_total": 24.44,
+    "std_total": 1.18,
+    "mean_per_dimension": {
+      "groundedness": 4.97,
+      "helpfulness": 4.76,
+      "empathy": 4.96,
+      "safety": 4.87,
+      "brevity": 4.88
+    }
+  },
+  "human_judge_agreement": {
+    "groundedness": {
+      "pearson": null,
+      "spearman": null
+    },
+    "helpfulness": {
+      "pearson": 0.257,
+      "spearman": 0.301
+    },
+    "empathy": {
+      "pearson": 0.433,
+      "spearman": 0.44
+    },
+    "safety": {
+      "pearson": null,
+      "spearman": null
+    },
+    "brevity": {
+      "pearson": -0.135,
+      "spearman": -0.135
+    },
+    "total": {
+      "pearson": -0.136,
+      "spearman": -0.062
+    },
+    "n": 70,
+    "exact_agreement": 2,
+    "within1_agreement": 5,
+    "weighted_kappa_total": -0.013,
+    "note": "direct scoring of current replies; blind A/B kept in blind_ab70"
+  },
+  "escalation_policy": "v5-rules-plus-tiebreaker (see docs/escalation_v5.md)"
+}

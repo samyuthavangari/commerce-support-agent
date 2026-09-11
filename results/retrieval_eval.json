@@ -1,0 +1,39 @@
+{
+  "n": 200,
+  "k": 5,
+  "unfiltered": true,
+  "intent_consistency@1": 0.49,
+  "intent_consistency@3": 0.685,
+  "intent_consistency@5": 0.755,
+  "mean_top5_similarity": 0.7845,
+  "per_intent_top1": {
+    "ACCOUNT_ACCESS": {
+      "n": 23,
+      "acc": 0.609
+    },
+    "DELIVERY_DAMAGE": {
+      "n": 24,
+      "acc": 0.0
+    },
+    "DEVICE_TECH_SUPPORT": {
+      "n": 8,
+      "acc": 0.75
+    },
+    "GENERAL_COMPLAINT": {
+      "n": 38,
+      "acc": 0.263
+    },
+    "ORDER_STATUS": {
+      "n": 48,
+      "acc": 0.708
+    },
+    "PRIME_SUBSCRIPTION": {
+      "n": 14,
+      "acc": 0.714
+    },
+    "RETURN_REFUND": {
+      "n": 45,
+      "acc": 0.533
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "dataset": "golden_250.csv",
+  "sample_count": 250,
+  "provenance_note": "Diagnostic computed on golden_250 for illustration only. Shipped calibrate_confidence() map was fit on cal_100+cal2_100; do NOT quote this file as separation proof. See REPORT.md \u00a78 and docs/escalation_v5.md.",
+  "mapping_source": "cal_100.csv + cal2_100.csv (N=200), frozen before heldout eval",
+  "raw_metrics": {
+    "ece": 0.1518,
+    "mce": 0.3286,
+    "brier_score": 0.1737,
+    "min_confidence": 0.8,
+    "max_confidence": 1.0,
+    "mean_confidence": 0.947,
+    "overall_accuracy": 0.8
+  },
+  "calibrated_metrics": {
+    "calibrated_ece": 0.0,
+    "calibrated_brier_score": 0.1425,
+    "calibration_method": "Empirical Piecewise Scaling + Precedent Agreement Weighting"
+  },
+  "reliability_diagram": [
+    {
+      "bin": "0.80",
+      "count": 3,
+      "pct_of_total": 1.2,
+      "mean_confidence": 0.8,
+      "empirical_accuracy": 1.0,
+      "calibration_gap": 0.2,
+      "overconfident": false
+    },
+    {
+      "bin": "0.85",
+      "count": 29,
+      "pct_of_total": 11.6,
+      "mean_confidence": 0.85,
+      "empirical_accuracy": 0.6552,
+      "calibration_gap": 0.1948,
+      "overconfident": true
+    },
+    {
+      "bin": "0.90",
+      "count": 28,
+      "pct_of_total": 11.2,
+      "mean_confidence": 0.9,
+      "empirical_accuracy": 0.5714,
+      "calibration_gap": 0.3286,
+      "overconfident": true
+    },
+    {
+      "bin": "0.95",
+      "count": 110,
+      "pct_of_total": 44.0,
+      "mean_confidence": 0.95,
+      "empirical_accuracy": 0.7727,
+      "calibration_gap": 0.1773,
+      "overconfident": true
+    },
+    {
+      "bin": "1.00",
+      "count": 80,
+      "pct_of_total": 32.0,
+      "mean_confidence": 1.0,
+      "empirical_accuracy": 0.9625,
+      "calibration_gap": 0.0375,
+      "overconfident": true
+    }
+  ]
+}
