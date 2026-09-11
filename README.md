@@ -406,9 +406,9 @@ Companion sets: `golden_set/cal_100.csv` (tuning ONLY, 31 positives), `golden_se
 | `QDRANT_PORT` | `6333` | Qdrant server port |
 | `QDRANT_URL` | `http://localhost:6333` | Local Docker (default) or Cloud cluster URL |
 | `QDRANT_API_KEY` | _(empty)_ | Only needed for password-protected / Cloud clusters |
-| `CLASSIFIER_MODEL` | `gemini-3.1-flash-lite` | Intent classifier model identifier |
-| `DRAFTER_MODEL` | `gemini-3.1-flash-lite` | Reply drafter model identifier |
-| `JUDGE_MODEL` | `gemini-3.1-flash-lite` | Evaluation judge model identifier |
+| `CLASSIFIER_MODEL` | `llm` | Intent classifier model identifier |
+| `DRAFTER_MODEL` | `llm` | Reply drafter model identifier |
+| `JUDGE_MODEL` | `llm` | Evaluation judge model identifier |
 | `TOP_K_RETRIEVAL` | `5` | Number of RAG examples |
 
 ---
