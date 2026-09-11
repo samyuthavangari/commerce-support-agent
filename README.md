@@ -1,8 +1,9 @@
-# Commerce Support AI Agent
-### Production AI Customer Support System & Evaluation Harness
+# Commerce Support AI Agent: Empirical Evaluation & Safe Routing Pipeline
 
-> **Brand Focus**: E-Commerce Customer Support (`@AmazonHelp`) | **Stack**: Foundation LLM (Flash-Lite Architecture) · Qdrant Vector Engine · LangChain  
-> **Reproducibility**: `run_eval.py --fast --baselines` verifies headlines in **2:59 measured**; full `run_eval.py --baselines` (n=250) in **9:38 measured** (4 workers); `--offline` inspects with no key in <1 min.  
+> **Domain Focus**: E-Commerce First-Response Customer Support (`@AmazonHelp`)  
+> **Model & Retrieval Stack**: Google Gemini (`gemini-3.1-flash-lite`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine · LangChain Core  
+> **Evaluation Harness**: 250-sample human-reviewed benchmark, deterministic multi-tier escalation, isolated held-out validation splits  
+> **Reproducibility**: Fast evaluation (`run_eval.py --fast --baselines`, n=30) executes in **2:59 measured**; full benchmark (`run_eval.py --baselines`, n=250) completes in **9:38 measured** (4 parallel workers); offline inspection executes in <1 min with zero API calls.  
 > **Official 6-Page Technical Report**: [**Download / View REPORT_6pp.pdf**](REPORT_6pp.pdf)
 
 ---
@@ -153,20 +154,29 @@ commerce-support-agent/
 
 ## Evaluation Results (Measured Benchmark, n=250 Human-Reviewed)
 
-| System | Intent acc | Macro-F1 | Esc recall | False-auto | Human reply |
+| System / Evaluation Split | Intent Acc | Macro-F1 | Esc Recall | False-Auto Rate | Human Reply Score |
 |---|---|---|---|---|---|
-| B0 majority | 0.220 | 0.0515 | — | — | — |
+| B0 Majority Baseline | 0.220 | 0.0515 | — | — | — |
 | B1 TF-IDF (fair: 8k weak-labelled non-golden threads, seed 42) | 0.508 | 0.464 | — | — | — |
-| Generic template (blind) | — | — | — | — | 19.0 human / 22.1 judge |
-| No-retrieval draft (ablation, n=50) | — | — | — | — | — / 23.46 judge |
-| **Our agent** | **0.820** [0.768–0.864] | **0.809** [0.753–0.855] | **0.981** [0.938–1.000] | **0.019** | **20.7** human / 24.4 judge |
-| Held-out esc A / B (frozen) | — | — | 0.733 / 0.364 | 0.267 / 0.636 | — |
+| Generic Brand Template (Blind A/B) | — | — | — | — | 19.0 human / 22.1 judge |
+| No-Retrieval Draft (Ablation, n=50) | — | — | — | — | — / 23.46 judge |
+| **Our Agent (Golden-250, v5 locked)** | **0.820** [0.768–0.864] | **0.809** [0.753–0.855] | **0.981** [0.938–1.000] | **0.019** (1/53 leak) | **20.7** human / 24.4 judge |
+| **Held-out Set A (Frozen n=50, v5 locked)** | — | — | **0.733** (11/15 caught) | **0.267** (4/15 leaks) | — |
+| **Held-out Set B (Frozen n=50, v5 locked)** | — | — | **0.364** (4/11 caught) | **0.636** (7/11 leaks) | — |
+
+> [!IMPORTANT]
+> **Core Technical Finding: The Generalization Gap in Deterministic Safety Routing**  
+> While the multi-tier deterministic escalation gate achieves **0.981 recall** and a **0.019 false-auto rate** on the 250-example golden set (calibrated on `cal-100` and `cal2-100`), evaluation against frozen, out-of-distribution held-out sets exposes a severe drop:
+> - **Held-out A (n=50)**: Recall **0.733**, False-Auto **0.267**
+> - **Held-out B (n=50)**: Recall **0.364**, False-Auto **0.636**
+> 
+> **Root Cause**: Regular expressions and keyword lists overfit to the exact vocabulary observed during calibration (e.g. catching *"unauthorized transaction"* but missing *"charged twice"* or typos like *"fladuent"*). This demonstrates that pure regex safety gates fail to generalize across unseen conversational paraphrases without semantic vector gating.
 
 Primary conclusion: our agent substantially improves intent routing over both
-trivial and classical baselines. Retrieval provides measurable benefit
-(+0.88 ablation; consistency@1 0.49 justifies the intent filter). Escalation
-remains the major generalization weakness, and LLM-judge absolute scores are
-not considered trustworthy due to weak human agreement.
+trivial and classical baselines (+31.2% accuracy over fair TF-IDF). Retrieval provides measurable benefit
+(+0.88 ablation; consistency@1 0.49 justifies the intent pre-filter). Escalation
+remains the primary generalization bottleneck, and LLM-judge absolute scores are
+demoted to directional comparison due to near-zero human rank agreement (ρ = −0.062).
 
 ### Intent detail (per-class in `eval_report.json`; confusion matrix in `results/`)
 
@@ -305,27 +315,32 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 4. **Cross-family judge + n≥100 human panel**: current judge agreement ρ=-0.062 is unusable for absolute grading; an alternate LLM family and larger human panel would settle the question.
 5. **Confidence calibration**: the classifier's 0.80–1.00 overconfidence band hides genuine uncertainty — calibrate against human ambiguity labels to unlock a useful low-confidence escalation trigger.
 
-#### Production Deployment & Live Loop Architecture
+#### Engineering Roadmap for Closing Known Limitations
 
 ```mermaid
 flowchart TD
-    TW["Live Twitter / X Ingestion<br/>(Filtered Mention Ingestion &lt;3s)"] --> AG["Inference Pipeline<br/>(Classify &rarr; Retrieve &rarr; Draft &rarr; Decide)"]
-    
-    AG --> DEC{"Escalation Decision"}
-    
-    DEC -- "AUTO-HANDLE" --> PUB["Public Auto-Reply<br/>&bull; Duplicate Protection<br/>&bull; Rate Limiting<br/>&bull; Instant Kill Switch"]
-    DEC -- "ESCALATE" --> INBOX["Human Agent Console<br/>&bull; High-Risk / Ambiguity Reason<br/>&bull; Pre-drafted 1-Click Reply<br/>&bull; Audit Trail Stored"]
-    
-    PUB & INBOX --> AUDIT["Immutable Audit Log<br/>(Intent, Confidence, Similarity, Reason)"]
+    subgraph PHASE1 ["1. Semantic Gating for Paraphrase Coverage"]
+        P1A["Unseen Paraphrases<br/>('charged twice', typos)"] --> P1B["Semantic Vector Escalation Gate<br/>Cosine similarity vs. fraud/threat prototypes<br/>Catches out-of-vocabulary expressions missed by regex"]
+    end
 
-    classDef stream fill:#f8f9fa,stroke:#495057,stroke-width:1px;
-    classDef decNode fill:#e8f4fd,stroke:#1971c2,stroke-width:2px;
-    classDef autoNode fill:#ebfbee,stroke:#2b8a3e,stroke-width:2px;
-    classDef humanNode fill:#fff5f5,stroke:#c92a2a,stroke-width:2px;
-    class TW,AG,AUDIT stream;
-    class DEC decNode;
-    class PUB autoNode;
-    class INBOX humanNode;
+    subgraph PHASE2 ["2. Intent Calibration & Active Gating"]
+        P2A["Temperature Scaling / Isotonic Regression"] --> P2B["Calibrated Confidence Scores<br/>Wire threshold &lt;0.70 directly into escalation gate<br/>(Current raw 0.80-1.00 band is uncalibrated)"]
+    end
+
+    subgraph PHASE3 ["3. Disambiguation Classifier"]
+        P3A["PRIME vs. ACCOUNT Boundary (0.527 Acc)"] --> P3B["Hierarchical Disambiguation Features<br/>Explicit membership/billing entity extraction<br/>Replaces ineffective prompt prose"]
+    end
+
+    subgraph PHASE4 ["4. Multi-Annotator Golden Adjudication"]
+        P4A["Single-Reviewer Ground Truth"] --> P4B["Inter-Annotator Adjudication Protocol<br/>3 independent annotators across 300+ evaluation cases<br/>Resolve systematic single-rater bias"]
+    end
+
+    PHASE1 --> PHASE2 --> PHASE3 --> PHASE4
+
+    classDef phase fill:#f8f9fa,stroke:#343a40,stroke-width:1px;
+    classDef highlight fill:#e8f4fd,stroke:#1971c2,stroke-width:2px;
+    class P1A,P2A,P3A,P4A phase;
+    class P1B,P2B,P3B,P4B highlight;
 ```
 
 ---
@@ -369,7 +384,7 @@ flowchart TD
 1. Load all reconstructed AmazonHelp threads from `data/processed/amazon_threads.jsonl`
 2. Pre-filter each thread's first customer message using intent-specific keyword lists
 3. Stratified sample to per-intent targets (pools: ORDER 2810, RETURN 695, ACCOUNT 496, PRIME 1141, DEVICE 1524, DAMAGE 108, COMPLAINT 299)
-4. **LLM first-pass** (Automated Foundation LLM): generates `llm_intent` + `escalate_yn` labels
+4. **LLM first-pass** (Google Gemini `gemini-3.1-flash-lite`): generates `llm_intent` + `escalate_yn` labels
 5. **Human second-pass** (`apply_review.py`, all 200 rows individually read): 10 intent corrections + 44 escalation corrections against the fixed 7-rule escalation definition in `apply_review.py`; `human_verified=True`, `labelled_by=human_review_v1`
 6. **Rare-class top-up** (`merge_topup.py`, +50 rows from OUTSIDE the corpus): DEVICE 8→24, PRIME 14→28 — every class now ≥24, golden stays ≤250
 7. **Kappa check**: `python src/eval/golden_builder.py --kappa` → intent κ = **0.939** (Substantial Agreement) on the first 200 (escalation labels intentionally diverge from the LLM's loose criteria — that divergence is the point)
@@ -389,10 +404,45 @@ Companion sets: `golden_set/cal_100.csv` (tuning ONLY, 31 positives), `golden_se
 
 ---
 
+## Verifiable Proof of Implementation & Hygiene
+
+The repository contains deterministic offline tests and leakage verification scripts that can be audited immediately without external API credentials or cloud dependencies:
+
+### 1. Offline Test Suite (27/27 Passing)
+Executed via `python -m pytest tests/ -q`:
+```
+...........................                                              [100%]
+27 passed in 67.64s (0:01:07)
+```
+Covers: deterministic escalation rules, URL sanitization guardrails, thread reconstruction joins, TF-IDF baseline training/inference, stratified golden set integrity, and prompt formatting schemas.
+
+### 2. Zero-Leakage Verification
+Executed via `python scripts/check_leakage.py --no-retrieval`:
+```
+[leak] eval threads: 297 (golden=250, heldout=50)
+Connecting to Qdrant -> https://8577f362-b92e-4c57-9f79-333aa7475ae4.us-west-2-0.aws.cloud.qdrant.io:6333
+OK Qdrant connected
+[leak] indexed points: 9753, eval overlap: 0
+[leak] WARN golden exact-dupe: GS_0129 == GS_0074 (kept deliberately; both labels agree)
+[leak] WARN golden exact-dupe: GS_0184 == GS_0006 (kept deliberately; both labels agree)
+[leak] WARN golden exact-dupe: GS_0197 == GS_0109 (kept deliberately; both labels agree)
+[leak] golden internal exact-dupes: 3 (warn-only)
+[leak] golden texts verbatim in corpus: 0
+[leak] golden rows with a >=0.85-Jaccard near-twin in corpus: 0 (report-only; short support tweets legitimately repeat)
+
+[leak] PASS: no blocking leakage detected.
+```
+Verified hygiene properties:
+- **Zero eval thread overlap**: None of the 297 golden/heldout thread IDs exist in the 9,753 indexed vector store points.
+- **Zero verbatim corpus leakage**: No evaluation prompt appears verbatim in the retrieval corpus payloads.
+- **Zero near-duplicate leakage**: No >=0.85 Jaccard word-overlap twins between evaluation queries and retrieval database.
+
+---
+
 ## References & Attributions
 
 - **Dataset**: Customer Support on Twitter — Kaggle, `thoughtvector/customer-support-on-twitter` (~2.8M tweets; accessed via the `SunidhiSriram/twcs` HuggingFace mirror, see `src/data_prep.py`). No Banking77 use (deemed unnecessary once Twitter intents stabilized).
-- **Foundation Models & APIs**: Configurable Foundation LLMs for classification, drafting, and benchmark verification, coupled with dense vector embeddings via standard GenAI interfaces.
+- **Models & Embeddings**: Google Gemini (`gemini-3.1-flash-lite`) for intent classification, RAG reply drafting, and evaluation judge verification; `gemini-embedding-001` (768d Matryoshka output dimension) for dense vector search.
 - **Infrastructure & Libraries**: Qdrant (`qdrant-client`), scikit-learn (TF-IDF baseline, kappa, PRF), SciPy (Pearson/Spearman), Streamlit (demo), Rich/TQDM (CLI UX). No proprietary code — core logic in `src/` is custom-engineered.
 
 ---
@@ -401,16 +451,16 @@ Companion sets: `golden_set/cal_100.csv` (tuning ONLY, 31 positives), `golden_se
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_API_KEY` | — | **Required** — Foundation LLM API key |
+| `GOOGLE_API_KEY` | — | **Required** — Google Gemini API key |
 | `QDRANT_HOST` | `localhost` | Qdrant server host |
 | `QDRANT_PORT` | `6333` | Qdrant server port |
 | `QDRANT_URL` | `http://localhost:6333` | Local Docker (default) or Cloud cluster URL |
 | `QDRANT_API_KEY` | _(empty)_ | Only needed for password-protected / Cloud clusters |
-| `CLASSIFIER_MODEL` | `llm` | Intent classifier model identifier |
-| `DRAFTER_MODEL` | `llm` | Reply drafter model identifier |
-| `JUDGE_MODEL` | `llm` | Evaluation judge model identifier |
+| `CLASSIFIER_MODEL` | `gemini-3.1-flash-lite` | Intent classifier model identifier |
+| `DRAFTER_MODEL` | `gemini-3.1-flash-lite` | Reply drafter model identifier |
+| `JUDGE_MODEL` | `gemini-3.1-flash-lite` | Evaluation judge model identifier |
 | `TOP_K_RETRIEVAL` | `5` | Number of RAG examples |
 
 ---
 
-*Commerce Support AI Agent · Production Evaluation Benchmark · Built with SOTA Foundation LLMs + Qdrant Vector Engine + LangChain*
+*Commerce Support AI Agent · Empirical Evaluation Benchmark · Powered by Google Gemini (gemini-3.1-flash-lite) + Qdrant Vector Engine*

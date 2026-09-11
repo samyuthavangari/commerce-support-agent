@@ -76,7 +76,7 @@ st.markdown(
     """
     <div class="hero">
         <h1>Commerce Support AI Agent</h1>
-        <p>Foundation LLM + Qdrant Vector Engine · E-Commerce Support (@AmazonHelp) · classify → retrieve → draft → decide</p>
+        <p>Gemini 3.1 Flash-Lite + Qdrant Vector Engine · E-Commerce Support (@AmazonHelp) · classify → retrieve → draft → decide</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -237,4 +237,4 @@ if st.session_state.history:
         st.markdown(f'<div class="hist">{h}</div>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("Amazon Support AI Agent · Production Evaluation Benchmark · LLM + Qdrant · Report: REPORT_6pp.pdf · Decisions: DECISIONS.md")
+st.caption("Commerce Support AI Agent · Empirical Evaluation Benchmark · Gemini 3.1 Flash-Lite + Qdrant · Report: REPORT_6pp.pdf · Decisions: DECISIONS.md")
