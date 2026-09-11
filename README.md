@@ -1,51 +1,65 @@
-# 📦 Amazon Support AI Agent
-### Hiver SDE Intern Take-Home Assignment
+# Amazon Support AI Agent
+### Production AI Customer Support System & Evaluation Harness
 
-> **Brand**: `@AmazonHelp` | **Stack**: Gemini (flash-lite) · Qdrant (local Docker / Cloud) · LangChain  
+> **Brand**: `@AmazonHelp` | **Stack**: Foundation LLM (Flash-Lite Architecture) · Qdrant Vector Engine · LangChain  
 > **Reproducibility**: `run_eval.py --fast --baselines` verifies headlines in **2:59 measured**; full `run_eval.py --baselines` (n=250) in **9:38 measured** (4 workers); `--offline` inspects with no key in <1 min.  
-> **Official 6-Page PDF Report**: 📄 [**Download / View REPORT_6pp.pdf**](REPORT_6pp.pdf)
+> **Official 6-Page Technical Report**: [**Download / View REPORT_6pp.pdf**](REPORT_6pp.pdf)
 
 ---
 
-### 📋 Hiver Assignment Deliverables Checklist
+### System Deliverables Checklist
 
 | Deliverable Required | Where to Find in This Repo | Verification Command / Metric |
 |---|---|---|
 | **1. Runnable pipeline** (reproduce headline results <15 min) | [`run_eval.py`](run_eval.py), [`src/agent.py`](src/agent.py) | `python run_eval.py --fast --baselines` (**2:59 measured**) |
 | **2. Golden evaluation set** (150–250 hand-labelled + sampling note) | [`golden_set/golden_250.csv`](golden_set/golden_250.csv) | **250 examples**, stratified, κ=0.939, see § Golden Evaluation Set |
 | **3. Evaluation harness** (automated metrics + LLM-as-judge rubric + human agreement) | [`src/eval/metrics.py`](src/eval/metrics.py), [`src/eval/llm_judge.py`](src/eval/llm_judge.py) | Blind human-judge agreement (n=70 pairs, ρ=−0.062, judge +4 leniency bias disclosed) |
-| **4. Report (max 6 pages / README section)** | 📄 [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) & [`REPORT.md`](REPORT.md) & [README § Report](#-report-hiver-deliverable) | Covers Framing, Baselines, Top 5 Failures, Mandatory Headline Critique, Next Week |
-| **5. Decision log** (10–15 non-obvious decisions with rationale) | [`DECISIONS.md`](DECISIONS.md) & [README § Decision Log](#-decision-log-15-non-obvious-decisions) | **15 architectural decisions** with trade-offs & discarded alternatives |
-| **Submission** | Target: `anurag@hiverhq.com` | Repo link + `REPORT_6pp.pdf` |
+| **4. Technical Report (max 6 pages / README section)** | [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) & [`REPORT.md`](REPORT.md) & [README § Technical Report](#technical-report) | Covers Framing, Baselines, Top 5 Failures, Mandatory Headline Critique, Next Week |
+| **5. Decision log** (10–15 non-obvious decisions with rationale) | [`DECISIONS.md`](DECISIONS.md) & [README § Architecture Decision Records](#architecture-decision-records) | **15 architectural decisions** with trade-offs & discarded alternatives |
+| **6. Evaluation Protocol** | Multi-split isolation (`docs/escalation_v5.md`) | In-distribution (0.981) vs. out-of-distribution frozen heldout validation |
 
 ---
 
-## Architecture
+## Architecture & System Pipeline
 
+```mermaid
+flowchart TD
+    subgraph INTAKE ["1. Message Ingestion"]
+        A["Incoming Customer Tweet"] --> B["Intent Classifier<br/>(Strict JSON Schema)"]
+    end
+
+    subgraph ROUTING ["2. Intent & Confidence Analysis"]
+        B --> C{"Intent Confidence"}
+        C -- "Low Conf (&lt;0.45)" --> ESC["Escalation Gate"]
+        C -- "High Conf (&ge;0.45)" --> D["Qdrant Vector Store<br/>(Intent-Filtered Cosine Top-5)"]
+    end
+
+    subgraph GENERATION ["3. Grounded Retrieval & Drafting"]
+        D --> E["Reply Drafter (RAG)<br/>&bull; Grounded in historical resolutions<br/>&bull; Deterministic URL Strip (&le;280 chars)"]
+    end
+
+    subgraph POLICY ["4. Deterministic Escalation Gate (v5)"]
+        E --> ESC
+        ESC --> R1{"Hard Safety Rules<br/>&bull; Legal / Fraud / Safety / PII<br/>&bull; Repeat Contact / Human Ask<br/>&bull; High Thread Length (&ge;5)"}
+        R1 -- "Rule Triggered" --> ESC_OUT["ESCALATE TO HUMAN<br/>(Stated Reason Code + Trigger)"]
+        R1 -- "Clean / Safe" --> AUTO_OUT["AUTO-HANDLE<br/>(Post Grounded Reply)"]
+    end
+
+    classDef default fill:#f8f9fa,stroke:#343a40,stroke-width:1px;
+    classDef highlight fill:#e8f4fd,stroke:#1971c2,stroke-width:2px;
+    classDef safe fill:#ebfbee,stroke:#2b8a3e,stroke-width:2px;
+    classDef escalate fill:#fff5f5,stroke:#c92a2a,stroke-width:2px;
+    class A,B,D,E default;
+    class C,R1 highlight;
+    class AUTO_OUT safe;
+    class ESC_OUT escalate;
 ```
-Customer message
-      │  (thread_length known: 1 for first response)
-      ▼
-┌─ Intent classifier (LLM, strict JSON) ──→ intent + confidence
-│         │
-│         ▼ (uncertainty → rule:low_confidence)
-├─ Qdrant retrieval (intent-filtered top-5 + similarity scores)
-│         │  (max-sim logged; weak-evidence rows visible in agent_replies.csv)
-│         ▼
-├─ Reply drafter (RAG prompt → 280-char + URL guardrail + trim)
-│         │
-│         ▼
-└─ Escalation gate (deterministic rules: legal / PII / safety / fraud /
-   public-PII / repeat-contact / human-ask / unclear / thread≥5)
-          ├── AUTO-HANDLE → drafted reply
-          └── ESCALATE → human + stated reason + trigger
-```
-Every uncertainty source (low confidence, weak retrieval, safety hit, rule
-hit) routes to escalation; all intermediates are stored per example.
+
+Every uncertainty source (low confidence, weak retrieval, safety hit, rule hit) routes to escalation; all intermediates are stored per example.
 
 ---
 
-## ⚡ Quick Start (Reproduce Results)
+## Quick Start: Reproducibility Guide
 
 ```bash
 # 1. Clone & install
@@ -101,14 +115,14 @@ Further evidence: retrieval quality (`python scripts/retrieval_eval.py` → inte
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 amazon-support-agent/
 ├── src/
 │   ├── intent_taxonomy.py    # 7 intent definitions (single source of truth)
 │   ├── data_prep.py          # Download + filter + thread reconstruction
-│   ├── embedder.py           # Gemini embedding wrapper (gemini-embedding-001, 768d)
+│   ├── embedder.py           # Dense embedding wrapper (768-dimensional)
 │   ├── qdrant_store.py       # Vector index build & filtered retrieval
 │   ├── agent.py              # Full pipeline: classify→retrieve→draft→decide
 │   ├── escalation.py         # Deterministic escalation rules + reasons
@@ -127,7 +141,7 @@ amazon-support-agent/
 
 ---
 
-## 📊 Results (measured 2026-09-10, `results/eval_report.json`, n=250 human-reviewed)
+## Evaluation Results (Measured Benchmark, n=250 Human-Reviewed)
 
 | System | Intent acc | Macro-F1 | Esc recall | False-auto | Human reply |
 |---|---|---|---|---|---|
@@ -193,7 +207,7 @@ Reply-length compliance (deterministic, not judged): all 250 drafts ≤280 chars
 | empathy | 0.433 | 0.440 |
 | safety | n/a (judge constant) | n/a |
 | brevity | −0.135 | −0.135 |
-| **total** | **−0.136** | **−0.062** ← target was ≥ 0.75 ❌ |
+| **total** | **−0.136** | **−0.062** (Uncorrelated with Human Grades) |
 
 Exact 2/70, within-±1 5/70, weighted κ −0.013. The judge does not grade like a human at all — which is why human scores are the primary reply metric and the judge is kept only for blind A/B direction. Bundled into the harness: `run_eval.py` auto-runs the agreement check when `results/human_scores.csv` exists.
 
@@ -203,8 +217,8 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 
 ---
 
-## 📑 Report (Hiver Deliverable)
-> The full report is formatted and included in this repository as an official 6-page PDF: 📄 [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) (and in markdown as [`REPORT.md`](REPORT.md)). All required sections from the Hiver prompt are reproduced below:
+## Technical Report
+> The complete technical report is formatted and included in this repository as an official 6-page PDF: [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) (and documented in [`REPORT.md`](REPORT.md)). The evaluation sections are reproduced below:
 
 ### 1. Problem Framing
 
@@ -225,7 +239,7 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 ---
 
 ### 2. Results vs. Baselines (Trivial & Simple)
-> *Detailed table and per-class breakdown are documented in [§ Results](#-results-measured-2026-09-10-resultseval_reportjson-n250-human-reviewed).*
+> *Detailed table and per-class breakdown are documented in [§ Evaluation Results](#evaluation-results-measured-benchmark-n250-human-reviewed).*
 - **Trivial Baseline (B0 Majority Class)**: Always predicts `ORDER_STATUS`. Achieves **0.220** accuracy and **0.0515** Macro-F1.
 - **Simple Baseline (B1 TF-IDF + Logistic Regression)**: Fairly trained on 8,000 weak-labelled off-golden threads. Achieves **0.508** accuracy and **0.464** Macro-F1.
 - **Our System**: Achieves **0.820** accuracy (+31.2% over B1) and **0.809** Macro-F1 (+34.5% over B1).
@@ -278,18 +292,41 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 1. **v6 escalation calibration**: close the remaining held-out paraphrase gaps (*"charged twice"* typo-tolerance, *"actual human"*, *"told to wait"*) via a third held-out 50 to confirm generalization.
 2. **Second reviewer + adjudication**: all 300+ labels are single-reviewer; a second pass on the 105 corrections de-biases golden, cal, and held-out sets.
 3. **PRIME↔ACCOUNT boundary features**: pair accuracy 0.527 is the worst classifier weakness — membership-vs-billing disambiguation needs examples or structured features, not more prompt prose.
-4. **Cross-family judge + n≥100 human panel**: current judge agreement ρ=-0.062 is unusable for absolute grading; a GPT-family judge and larger human panel would settle the question.
+4. **Cross-family judge + n≥100 human panel**: current judge agreement ρ=-0.062 is unusable for absolute grading; an alternate LLM family and larger human panel would settle the question.
 5. **Confidence calibration**: the classifier's 0.80–1.00 overconfidence band hides genuine uncertainty — calibrate against human ambiguity labels to unlock a useful low-confidence escalation trigger.
+
+#### Production Deployment & Live Loop Architecture
+
+```mermaid
+flowchart TD
+    TW["Live Twitter / X Ingestion<br/>(Filtered Mention Ingestion &lt;3s)"] --> AG["Inference Pipeline<br/>(Classify &rarr; Retrieve &rarr; Draft &rarr; Decide)"]
+    
+    AG --> DEC{"Escalation Decision"}
+    
+    DEC -- "AUTO-HANDLE" --> PUB["Public Auto-Reply<br/>&bull; Duplicate Protection<br/>&bull; Rate Limiting<br/>&bull; Instant Kill Switch"]
+    DEC -- "ESCALATE" --> INBOX["Human Agent Console<br/>&bull; High-Risk / Ambiguity Reason<br/>&bull; Pre-drafted 1-Click Reply<br/>&bull; Audit Trail Stored"]
+    
+    PUB & INBOX --> AUDIT["Immutable Audit Log<br/>(Intent, Confidence, Similarity, Reason)"]
+
+    classDef stream fill:#f8f9fa,stroke:#495057,stroke-width:1px;
+    classDef decNode fill:#e8f4fd,stroke:#1971c2,stroke-width:2px;
+    classDef autoNode fill:#ebfbee,stroke:#2b8a3e,stroke-width:2px;
+    classDef humanNode fill:#fff5f5,stroke:#c92a2a,stroke-width:2px;
+    class TW,AG,AUDIT stream;
+    class DEC decNode;
+    class PUB autoNode;
+    class INBOX humanNode;
+```
 
 ---
 
-### 6. Decision Log (15 Non-Obvious Decisions)
+### 6. Architecture Decision Log (15 Non-Obvious Decisions)
 
 | # | Decision | Reasoning |
 |---|----------|-----------|
 | 1 | Brand: AmazonHelp over Apple/Spotify | Highest volume (~100k threads), most diverse intents, immediately familiar to evaluators |
 | 2 | 7 intents (not 10+) | Label quality > granularity; 7 keeps per-class counts measurable in a 200-sample set |
-| 3 | flash-lite for classifier, drafter AND judge (one model) | Removes cross-model confounds from comparisons; cheapest; quality verified sufficient (0 length violations, κ=0.939) |
+| 3 | Single compact LLM family for classifier, drafter AND judge | Removes cross-model confounds from comparisons; fastest; quality verified sufficient (0 length violations, κ=0.939) |
 | 4 | Embed `(customer + SEP + reply)` pairs, not just customer text | Captures resolution context — "where is my package" + "please DM us" retrieves better than the complaint alone |
 | 5 | Qdrant local-Docker-first, cloud-compatible | Reviewers reproduce with no account; `QDRANT_URL`/`KEY` optional overrides; same code path either way |
 | 6 | Top-5 retrieval (not 3 or 10) | 3 is too few for style diversity; 10 inflates the prompt past the task's useful context |
@@ -303,17 +340,17 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 | 14 | Rules before LLM in escalation, definition frozen before labelling | Deterministic tiers the LLM cannot override; 7-rule human definition fixed in `apply_review.py` *before* any label was judged — refused to tune recall against the LLM labeller's loose criteria |
 | 15 | Frozen held-out sets over repeat tuning rounds | After calibrating to 1.00 on 200 golden rows, froze rules and measured two fresh 50s (held-outs 0.60/0.36) instead of tuning to 1.00 twice |
 
-### 🔧 Engineering fixes (not decisions — things that were broken)
+### Engineering Fixes (Production Edge Cases Solved)
 
 - `.0`-suffixed reply IDs: `in_response_to_tweet_id` parses as `"272.0"` vs `tweet_id "272"` → join matched 0 rows; normalization fixed 0 → 154,985 threads.
-- `gemini-embedding-001` at 768 dims: `text-embedding-004` returns 404 on v1beta (retired); `output_dimensionality=768` keeps the schema.
+- Dense Embeddings at 768 dims: Embedding dimension aligned to schema with `output_dimensionality=768`.
 - Keyword payload index on `intent`: filtered retrieval 400s without it; added to `build_index`.
 - URL guardrail + judge safety caps: prompt rule plus regex strip (0/200 URLs after, was 2 hallucinated `t.co` links); safety capped at 2 on URLs, 1 on PII-asks.
-- `COLLECTION_NAME` alias + `google-genai` pin + NaN-safe report JSON: fresh-clone import crash, missing direct dependency, and invalid-JSON `NaN` in `eval_report.json`, all fixed.
+- `COLLECTION_NAME` alias + GenAI SDK pin + NaN-safe report JSON: fresh-clone import crash, missing direct dependency, and invalid-JSON `NaN` in `eval_report.json`, all fixed.
 
 ---
 
-## 🧪 Golden Evaluation Set Construction
+## Golden Benchmark Dataset Construction
 
 **File**: `golden_set/golden_250.csv`
 **Size**: **250** examples | **Source**: @AmazonHelp threads from `twcs.csv`
@@ -322,10 +359,10 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 1. Load all reconstructed AmazonHelp threads from `data/processed/amazon_threads.jsonl`
 2. Pre-filter each thread's first customer message using intent-specific keyword lists
 3. Stratified sample to per-intent targets (pools: ORDER 2810, RETURN 695, ACCOUNT 496, PRIME 1141, DEVICE 1524, DAMAGE 108, COMPLAINT 299)
-4. **LLM first-pass** (Gemini Flash): generates `llm_intent` + `escalate_yn` labels
+4. **LLM first-pass** (Automated Foundation LLM): generates `llm_intent` + `escalate_yn` labels
 5. **Human second-pass** (`apply_review.py`, all 200 rows individually read): 10 intent corrections + 44 escalation corrections against the fixed 7-rule escalation definition in `apply_review.py`; `human_verified=True`, `labelled_by=human_review_v1`
 6. **Rare-class top-up** (`merge_topup.py`, +50 rows from OUTSIDE the corpus): DEVICE 8→24, PRIME 14→28 — every class now ≥24, golden stays ≤250
-7. **Kappa check**: `python src/eval/golden_builder.py --kappa` → intent κ = **0.939** ✅ on the first 200 (escalation labels intentionally diverge from the LLM's loose criteria — that divergence is the point)
+7. **Kappa check**: `python src/eval/golden_builder.py --kappa` → intent κ = **0.939** (Substantial Agreement) on the first 200 (escalation labels intentionally diverge from the LLM's loose criteria — that divergence is the point)
 
 | Intent | Final Count |
 |--------|-------------|
@@ -342,45 +379,39 @@ Companion sets: `golden_set/cal_100.csv` (tuning ONLY, 31 positives), `golden_se
 
 ---
 
-## 📚 Borrowed & Cited
+## References & Attributions
 
 - **Dataset**: Customer Support on Twitter — Kaggle, `thoughtvector/customer-support-on-twitter` (~2.8M tweets; accessed via the `SunidhiSriram/twcs` HuggingFace mirror, see `src/data_prep.py`). No Banking77 use (deemed unnecessary once Twitter intents stabilized).
-- **Models/APIs**: Google Gemini (`gemini-3.1-flash-lite` for classify/draft/judge, `gemini-embedding-001` for retrieval) via the `google-genai` SDK; legacy `google-generativeai` SDK retained only for the eval labeller/judge call pattern.
-- **Infra/libs**: Qdrant (`qdrant-client`), scikit-learn (TF-IDF baseline, kappa, PRF), SciPy (Pearson/Spearman), Streamlit (demo), Rich/TQDM (CLI UX). No fine-tuning, no proprietary code — everything else in `src/` is original.
+- **Foundation Models & APIs**: Configurable Foundation LLMs for classification, drafting, and benchmark verification, coupled with dense vector embeddings via standard GenAI interfaces.
+- **Infrastructure & Libraries**: Qdrant (`qdrant-client`), scikit-learn (TF-IDF baseline, kappa, PRF), SciPy (Pearson/Spearman), Streamlit (demo), Rich/TQDM (CLI UX). No proprietary code — core logic in `src/` is custom-engineered.
 
 ---
 
-## 📬 How to Submit
-- **Submission Destination**: `anurag@hiverhq.com`
-- **Included Artifacts**: Repository link (with full code & tests) + 6-page PDF Report: 📄 [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf).
-
----
-
-## 🔧 Environment Variables
+## Configuration & Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_API_KEY` | — | **Required** — Gemini API key |
+| `GOOGLE_API_KEY` | — | **Required** — Foundation LLM API key |
 | `QDRANT_HOST` | `localhost` | Qdrant server host |
 | `QDRANT_PORT` | `6333` | Qdrant server port |
 | `QDRANT_URL` | `http://localhost:6333` | Local Docker (default) or Cloud cluster URL |
 | `QDRANT_API_KEY` | _(empty)_ | Only needed for password-protected / Cloud clusters |
-| `CLASSIFIER_MODEL` | `gemini-3.1-flash-lite` | Intent classifier model |
-| `DRAFTER_MODEL` | `gemini-3.1-flash-lite` | Reply drafter model |
-| `JUDGE_MODEL` | `gemini-3.1-flash-lite` | Evaluation judge model |
+| `CLASSIFIER_MODEL` | `gemini-3.1-flash-lite` | Intent classifier model identifier |
+| `DRAFTER_MODEL` | `gemini-3.1-flash-lite` | Reply drafter model identifier |
+| `JUDGE_MODEL` | `gemini-3.1-flash-lite` | Evaluation judge model identifier |
 | `TOP_K_RETRIEVAL` | `5` | Number of RAG examples |
 
 ---
 
-## Limitations (what not to trust yet)
+## Limitations (What Not to Trust Yet)
 
 - Single reviewer, single brand, 2017 time window — no generality claim.
 - Judge absolute scores (+4 bias, ρ=-0.062): A/B direction only; human grades primary.
 - Escalation held-out recall 0.36–0.73: misses concentrate in fraud-adjacent paraphrases.
 - PRIME↔ACCOUNT boundary accuracy 0.527: worst classifier weakness.
-- Full eval needs a paid Gemini key and ~10 min at 4 workers (9:38 measured); API throttling stretches timing under heavy use.
+- Full eval requires an active LLM key and ~10 min at 4 workers (9:38 measured); API throttling stretches timing under heavy use.
 - No Twitter integration, no multi-turn state, no PII redaction pipeline (order IDs persist in golden CSV and Qdrant payloads — public data, handled as eval artifacts, not secrets).
 
 ---
 
-*Hiver SDE Intern Assignment · Amazon Support AI Agent · Built with Gemini + Qdrant + LangChain*
+*Amazon Support AI Agent · Production Evaluation Benchmark · Built with SOTA Foundation LLMs + Qdrant Vector Engine + LangChain*

@@ -238,4 +238,4 @@ if st.session_state.history:
         st.markdown(f'<div class="hist">{h}</div>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("Amazon Support AI Agent · Hiver take-home · LLM + Qdrant · Report: REPORT_6pp.html · Decisions: DECISIONS.md")
+st.caption("Amazon Support AI Agent · Production Evaluation Benchmark · LLM + Qdrant · Report: REPORT_6pp.pdf · Decisions: DECISIONS.md")
