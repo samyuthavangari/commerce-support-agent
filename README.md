@@ -413,15 +413,4 @@ Companion sets: `golden_set/cal_100.csv` (tuning ONLY, 31 positives), `golden_se
 
 ---
 
-## Limitations (What Not to Trust Yet)
-
-- Single reviewer, single brand, 2017 time window — no generality claim.
-- Judge absolute scores (+4 bias, ρ=-0.062): A/B direction only; human grades primary.
-- Escalation held-out recall 0.36–0.73: misses concentrate in fraud-adjacent paraphrases.
-- PRIME↔ACCOUNT boundary accuracy 0.527: worst classifier weakness.
-- Full eval requires an active LLM key and ~10 min at 4 workers (9:38 measured); API throttling stretches timing under heavy use.
-- No Twitter integration, no multi-turn state, no PII redaction pipeline (order IDs persist in golden CSV and Qdrant payloads — public data, handled as eval artifacts, not secrets).
-
----
-
 *Commerce Support AI Agent · Production Evaluation Benchmark · Built with SOTA Foundation LLMs + Qdrant Vector Engine + LangChain*
