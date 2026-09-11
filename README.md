@@ -1,7 +1,7 @@
-# Amazon Support AI Agent
+# Commerce Support AI Agent
 ### Production AI Customer Support System & Evaluation Harness
 
-> **Brand**: `@AmazonHelp` | **Stack**: Foundation LLM (Flash-Lite Architecture) · Qdrant Vector Engine · LangChain  
+> **Brand Focus**: E-Commerce Customer Support (`@AmazonHelp`) | **Stack**: Foundation LLM (Flash-Lite Architecture) · Qdrant Vector Engine · LangChain  
 > **Reproducibility**: `run_eval.py --fast --baselines` verifies headlines in **2:59 measured**; full `run_eval.py --baselines` (n=250) in **9:38 measured** (4 workers); `--offline` inspects with no key in <1 min.  
 > **Official 6-Page Technical Report**: [**Download / View REPORT_6pp.pdf**](REPORT_6pp.pdf)
 
@@ -17,6 +17,16 @@
 | **4. Technical Report (max 6 pages / README section)** | [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) & [`REPORT.md`](REPORT.md) & [README § Technical Report](#technical-report) | Covers Framing, Baselines, Top 5 Failures, Mandatory Headline Critique, Next Week |
 | **5. Decision log** (10–15 non-obvious decisions with rationale) | [`DECISIONS.md`](DECISIONS.md) & [README § Architecture Decision Records](#architecture-decision-records) | **15 architectural decisions** with trade-offs & discarded alternatives |
 | **6. Evaluation Protocol** | Multi-split isolation (`docs/escalation_v5.md`) | In-distribution (0.981) vs. out-of-distribution frozen heldout validation |
+
+---
+
+## Interactive Diagnostic Demo
+
+Below is a diagnostic execution trace generated from the interactive evaluation console ([`demo.py`](demo.py)):
+
+<p align="center">
+  <img src="docs/demo.png" alt="Commerce Support AI Agent - demo.py Interactive Execution" width="850"/>
+</p>
 
 ---
 
@@ -63,8 +73,8 @@ Every uncertainty source (low confidence, weak retrieval, safety hit, rule hit) 
 
 ```bash
 # 1. Clone & install
-git clone https://github.com/samyuthavangari/amazon-support-agent.git
-cd amazon-support-agent
+git clone https://github.com/samyuthavangari/commerce-support-agent.git
+cd commerce-support-agent
 pip install -r requirements.txt
 
 # 2. Set API key
@@ -118,7 +128,7 @@ Further evidence: retrieval quality (`python scripts/retrieval_eval.py` → inte
 ## Project Structure
 
 ```
-amazon-support-agent/
+commerce-support-agent/
 ├── src/
 │   ├── intent_taxonomy.py    # 7 intent definitions (single source of truth)
 │   ├── data_prep.py          # Download + filter + thread reconstruction
@@ -414,4 +424,4 @@ Companion sets: `golden_set/cal_100.csv` (tuning ONLY, 31 positives), `golden_se
 
 ---
 
-*Amazon Support AI Agent · Production Evaluation Benchmark · Built with SOTA Foundation LLMs + Qdrant Vector Engine + LangChain*
+*Commerce Support AI Agent · Production Evaluation Benchmark · Built with SOTA Foundation LLMs + Qdrant Vector Engine + LangChain*

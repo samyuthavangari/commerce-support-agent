@@ -1,7 +1,7 @@
 """
 demo.py
 ───────
-Interactive CLI demo for the Amazon Support AI Agent.
+Interactive CLI demo for the Commerce Support AI Agent.
 
 Generates comprehensive diagnostic reports for incoming customer queries:
   - Predicted intent & confidence
@@ -314,7 +314,7 @@ def print_report(res: dict, show_examples: bool = True) -> None:
 def interactive_menu(client) -> None:
     """Run user-friendly prompt loop."""
     print("\n" + "=" * 65)
-    print(" 📦 Amazon Support AI Agent — Interactive Diagnostic Console")
+    print(" Commerce Support AI Agent — Interactive Diagnostic Console")
     print("=" * 65)
     print("Select a sample query or type your own:\n")
     for pid, text in PRESETS.items():
@@ -349,7 +349,7 @@ def interactive_menu(client) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Amazon Support Agent Diagnostic Demo")
+    parser = argparse.ArgumentParser(description="Commerce Support Agent Diagnostic Demo")
     parser.add_argument("--query", type=str, default=None, help="Customer message text to analyze")
     parser.add_argument("--preset", type=str, default=None, choices=list(PRESETS.keys()), help="Run specific preset (amz-001 to amz-005)")
     parser.add_argument("--no-qdrant", action="store_true", help="Skip Qdrant vector retrieval")

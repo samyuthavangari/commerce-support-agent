@@ -3,7 +3,7 @@ run_eval.py
 ────────────
 One-command evaluation harness.
 
-Runs the full Amazon Support Agent on every example in the golden set
+Runs the full Commerce Support Agent on every example in the golden set
 and produces a complete evaluation report.
 
 Outputs:
@@ -79,7 +79,7 @@ def run_offline_agent(message: str) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Amazon Support Agent — Full Evaluation Harness",
+        description="Commerce Support Agent — Full Evaluation Harness",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -138,7 +138,7 @@ Examples:
         OUT = cfg.results_dir
     OUT.mkdir(parents=True, exist_ok=True)
     console.print(f"[cyan]Output dir: {OUT}[/cyan]")
-    console.print(Panel("[bold cyan]📦 Amazon Support Agent — Evaluation Harness[/bold cyan]"))
+    console.print(Panel("[bold cyan]Commerce Support Agent — Evaluation Harness[/bold cyan]"))
 
     # ── Leakage gate: fail the evaluation, not just warn ──────────────────
     # Verifies the live index excludes exactly the current eval threads,

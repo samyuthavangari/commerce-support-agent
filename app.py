@@ -1,7 +1,7 @@
 """
 app.py
 ───────
-Creative Streamlit demo for the Amazon Support Agent.
+Streamlit demo for the Commerce Support AI Agent.
 Run: streamlit run app.py
 
 Tabs avoided on purpose: tests assert exactly 1 button + 1 text area on boot.
@@ -19,8 +19,7 @@ load_dotenv()
 sys.path.insert(0, "src")
 
 st.set_page_config(
-    page_title="Amazon Support AI Agent",
-    page_icon="📦",
+    page_title="Commerce Support AI Agent",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -76,8 +75,8 @@ st.markdown(
 st.markdown(
     """
     <div class="hero">
-        <h1>📦 Amazon Support AI Agent</h1>
-        <p>LLM + Qdrant RAG · Brand @AmazonHelp · classify → retrieve → draft → decide</p>
+        <h1>Commerce Support AI Agent</h1>
+        <p>Foundation LLM + Qdrant Vector Engine · E-Commerce Support (@AmazonHelp) · classify → retrieve → draft → decide</p>
     </div>
     """,
     unsafe_allow_html=True,
