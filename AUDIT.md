@@ -25,7 +25,7 @@ Legend: P0 = submission blocker · P1 = important · P2 = polish.
   Qdrant retrieval → draft (280-char + URL guardrail) → escalation with
   reason/trigger. Live-probed on unseen messages; 200/200 golden rows, 0 errors.
 - **Golden set**: 200 rows, all `human_verified=True`, corrections recorded as
-  code (`apply_review.py`), intent κ=0.939, frozen 7-rule escalation definition.
+  code (`scripts/labeling/apply_review.py`), intent κ=0.939 (LLM-vs-human-reviewer agreement, single reviewer, no adjudication pass), frozen 7-rule escalation definition.
   Bonus: 50-row frozen held-out set (`golden_set/heldout_50.csv`).
 - **Harness**: `run_eval.py` one-command (agent + B0/B1 + judge + agreement →
   `eval_report.json`); per-class intent metrics + confusion matrix; baselines

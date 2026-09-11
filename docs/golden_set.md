@@ -14,7 +14,7 @@ agreeing labels (GS_0006/0184, GS_0074/0129, GS_0109/0197 — pinned by test).
 
 ## Labelling
 1. **First pass (LLM)**: Gemini flash assigns `llm_intent` + `escalate_yn`.
-   Stored, never overwritten — `llm_intent` vs `true_intent` gives κ=0.939.
+   Stored, never overwritten — `llm_intent` vs `true_intent` gives κ=0.939 (LLM-vs-human-reviewer agreement, single reviewer, no adjudication pass).
 2. **Second pass (human, all 200 rows read)**: 10 intent + 45 escalation
    corrections recorded as code in `apply_review.py` (`human_verified=True`,
    `labelled_by=human_review_v1`). Escalation judged against the 7-rule

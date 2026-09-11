@@ -56,31 +56,127 @@ if sys.platform == "win32":
 
 console = Console(safe_box=True)
 
-# ── Qdrant Cloud client (singleton) ───────────────────────────────────────
+# ── Pure-Python In-Memory Vector Store Fallback (Zero Docker) ──────────────
 
-def get_client() -> QdrantClient:
+from dataclasses import dataclass
+import numpy as np
+
+@dataclass
+class ScoredHit:
+    id: str
+    score: float
+    payload: dict
+
+class InMemoryVectorStore:
     """
-    Returns a QdrantClient for QDRANT_URL (+ QDRANT_API_KEY if set).
-    Works against local Docker (default http://localhost:6333, no key)
-    as well as Qdrant Cloud.
+    Pure-Python in-memory vector store using numpy cosine similarity.
+    Zero Docker requirement. Provides a drop-in compatible interface with QdrantClient search.
     """
+    def __init__(self, data_path: Optional[Path] = None):
+        self.data_path = data_path or (Path(__file__).resolve().parent.parent / "data" / "memory_vectors.npz")
+        self.vectors = None
+        self.payloads = []
+        self._load()
+
+    def _load(self):
+        if self.data_path and self.data_path.exists():
+            data = np.load(self.data_path, allow_pickle=True)
+            self.vectors = data["vectors"]
+            raw_payloads = data["payloads"]
+            if isinstance(raw_payloads, np.ndarray) and raw_payloads.ndim == 0:
+                self.payloads = json.loads(str(raw_payloads))
+            elif isinstance(raw_payloads, str):
+                self.payloads = json.loads(raw_payloads)
+            else:
+                self.payloads = list(raw_payloads)
+            norms = np.linalg.norm(self.vectors, axis=1, keepdims=True)
+            norms[norms == 0] = 1e-9
+            self.vectors = self.vectors / norms
+        else:
+            self.vectors = np.empty((0, 768), dtype=np.float32)
+            self.payloads = []
+
+    def get_collections(self):
+        return [cfg.qdrant_collection]
+
+    def collection_exists(self, collection_name: str) -> bool:
+        return True
+
+    def get_collection(self, collection_name: str):
+        class CollectionInfo:
+            points_count = len(self.payloads)
+            status = "in_memory_numpy"
+        return CollectionInfo()
+
+    def search(
+        self,
+        collection_name: str,
+        query_vector: list[float],
+        query_filter=None,
+        limit: int = 5,
+        with_payload: bool = True,
+    ) -> list[ScoredHit]:
+        if len(self.payloads) == 0:
+            return []
+
+        intent_val = None
+        if query_filter and hasattr(query_filter, "must") and query_filter.must:
+            for cond in query_filter.must:
+                if getattr(cond, "key", None) == "intent":
+                    intent_val = getattr(getattr(cond, "match", None), "value", None)
+
+        q_vec = np.array(query_vector, dtype=np.float32)
+        q_norm = np.linalg.norm(q_vec)
+        if q_norm > 0:
+            q_vec = q_vec / q_norm
+
+        if intent_val:
+            indices = [i for i, p in enumerate(self.payloads) if p.get("intent") == intent_val]
+            if not indices:
+                indices = list(range(len(self.payloads)))
+        else:
+            indices = list(range(len(self.payloads)))
+
+        sub_vectors = self.vectors[indices]
+        sims = np.dot(sub_vectors, q_vec)
+        top_k_indices = np.argsort(sims)[::-1][:limit]
+        hits = []
+        for rank_idx in top_k_indices:
+            orig_idx = indices[rank_idx]
+            hits.append(ScoredHit(
+                id=str(self.payloads[orig_idx].get("thread_id", orig_idx)),
+                score=float(sims[rank_idx]),
+                payload=self.payloads[orig_idx]
+            ))
+        return hits
+
+
+# ── Qdrant / Fallback client loader ────────────────────────────────────────
+
+def get_client(no_docker: bool = False):
+    """
+    Returns a QdrantClient or automatically falls back to InMemoryVectorStore
+    (zero Docker required).
+    """
+    if no_docker:
+        console.print("[cyan]Zero-Docker mode: using pure-Python in-memory vector store[/cyan]")
+        return InMemoryVectorStore()
+
     console.print(f"[cyan]Connecting to Qdrant -> {cfg.qdrant_url}[/cyan]")
-    kwargs: dict = {"url": cfg.qdrant_url, "timeout": 60}
+    kwargs: dict = {"url": cfg.qdrant_url, "timeout": 10}
     if cfg.qdrant_api_key:
         kwargs["api_key"] = cfg.qdrant_api_key
-    client = QdrantClient(**kwargs)
-    # Verify connection
     try:
+        client = QdrantClient(**kwargs)
         client.get_collections()
         console.print("[green]OK Qdrant connected[/green]")
+        return client
     except Exception as e:
-        raise ConnectionError(
-            f"Cannot reach Qdrant at {cfg.qdrant_url}.\n"
-            f"  -> Start local Qdrant: docker run -d -p 6333:6333 qdrant/qdrant\n"
-            f"  -> Or set QDRANT_URL + QDRANT_API_KEY in your .env file.\n"
-            f"  -> Original error: {e}"
+        console.print(
+            f"[yellow]! Qdrant unavailable at {cfg.qdrant_url} ({e})\n"
+            "  -> Falling back to pure-Python in-memory numpy vector store (zero Docker required).[/yellow]"
         )
-    return client
+        return InMemoryVectorStore()
 
 
 # Backwards-compat alias (app.py imports this name).

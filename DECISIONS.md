@@ -27,11 +27,11 @@ Format: WHAT / WHY / ALTERNATIVES / TRADEOFF. Trivial choices omitted.
 - **Alternatives**: customer-text-only embeddings; fine-tuned contrastive embeddings.
 - **Tradeoff**: reply-side noise (deflections) leaks into similarity; no fine-tuning budget.
 
-## 5. Local-first Qdrant, cloud-compatible
-- **What**: `QDRANT_URL` defaults to localhost Docker; cloud via optional overrides; same code path.
-- **Why**: reviewers reproduce with no account; no Docker-in-Docker or vendor lock.
-- **Alternatives**: cloud-only; in-memory (rejected: index doesn't persist across runs).
-- **Tradeoff**: reviewer still runs one Docker container and one ~5-min index build.
+## 5. Local-first Qdrant with pure-Python in-memory fallback
+- **What**: `QDRANT_URL` defaults to localhost Docker; cloud via optional overrides; zero-Docker fallback via `--no-docker` with pre-computed numpy vectors (`data/memory_vectors.npz`).
+- **Why**: reviewers reproduce in pure Python without Docker installed; full index still available if Qdrant is launched.
+- **Alternatives**: cloud-only; Docker-only (cold start was ~9m with Docker).
+- **Tradeoff**: in-memory store loads static normalized vector slice; lightweight for benchmark evaluation.
 
 ## 6. Top-5 retrieval with intent pre-filter
 - **What**: filter payloads by predicted intent, then top-5 cosine.
@@ -47,10 +47,10 @@ Format: WHAT / WHY / ALTERNATIVES / TRADEOFF. Trivial choices omitted.
 - **Tradeoff**: regex can mangle edge text; legitimate links impossible by construction.
 
 ## 8. Two-pass labelling with corrections as code
-- **What**: LLM first-pass → row-by-row human review recorded in `apply_review.py`.
+- **What**: LLM first-pass → row-by-row human review recorded in `scripts/labeling/apply_review.py`.
 - **Why**: cuts labelling time; every change is an auditable diff (55 corrections).
 - **Alternatives**: pure hand-labelling (slower); accepting LLM labels (dishonest to call golden).
-- **Tradeoff**: single reviewer, one session — bias documented, no adjudication pass.
+- **Tradeoff**: single reviewer, one session (κ=0.939 LLM-vs-human agreement) — bias documented, no adjudication pass.
 
 ## 9. Escalation definition frozen BEFORE labelling
 - **What**: 7-rule human definition fixed in `apply_review.py`, then rows judged.

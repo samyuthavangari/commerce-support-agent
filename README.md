@@ -1,29 +1,31 @@
 # Commerce Support AI Agent: Empirical Evaluation & Safe Routing Pipeline
 
 > **Domain Focus**: E-Commerce First-Response Customer Support (`@AmazonHelp`)  
-> **Model & Retrieval Stack**: Google Gemini (`gemini-3.1-flash-lite`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine · LangChain Core  
+> **Model & Retrieval Stack**: Google Gemini (`gemini-3.1-flash-lite`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine / Pure-Python In-Memory Fallback · LangChain Core  
 > **Evaluation Harness**: 250-sample human-reviewed benchmark, deterministic multi-tier escalation, isolated held-out validation splits  
-> **Reproducibility**: Fast evaluation (`run_eval.py --fast --baselines`, n=30) executes in **2:59 measured**; full benchmark (`run_eval.py --baselines`, n=250) completes in **9:38 measured** (4 parallel workers); offline inspection executes in <1 min with zero API calls.  
+> **Reproducibility**: Fast evaluation (`run_eval.py --fast --baselines`, n=30) executes in **2:59 measured** (zero Docker required via in-memory vector store); full benchmark (`run_eval.py --baselines`, n=250) completes in **9:38 measured** (4 parallel workers); offline inspection executes in <1 min with zero API calls.  
+> **Cold-Start Timing**: Fresh clone → venv → install → offline evaluation takes **4:15 measured** in pure-Python `--no-docker` mode (**8:40 measured** if pulling & launching Qdrant Docker).  
 > **Official 6-Page Technical Report**: [**Download / View REPORT_6pp.pdf**](REPORT_6pp.pdf)
 
 ---
 
-### System Deliverables Checklist
+### System Architecture & Deliverables Directory
 
-| Deliverable Required | Where to Find in This Repo | Verification Command / Metric |
+| Component / Deliverable | Source Location | Description & Verification |
 |---|---|---|
-| **1. Runnable pipeline** (reproduce headline results <15 min) | [`run_eval.py`](run_eval.py), [`src/agent.py`](src/agent.py) | `python run_eval.py --fast --baselines` (**2:59 measured**) |
-| **2. Golden evaluation set** (150–250 hand-labelled + sampling note) | [`golden_set/golden_250.csv`](golden_set/golden_250.csv) | **250 examples**, stratified, κ=0.939, see § Golden Evaluation Set |
-| **3. Evaluation harness** (automated metrics + LLM-as-judge rubric + human agreement) | [`src/eval/metrics.py`](src/eval/metrics.py), [`src/eval/llm_judge.py`](src/eval/llm_judge.py) | Blind human-judge agreement (n=70 pairs, ρ=−0.062, judge +4 leniency bias disclosed) |
-| **4. Technical Report (max 6 pages / README section)** | [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) & [`REPORT.md`](REPORT.md) & [README § Technical Report](#technical-report) | Covers Framing, Baselines, Top 5 Failures, Mandatory Headline Critique, Next Week |
-| **5. Decision log** (10–15 non-obvious decisions with rationale) | [`DECISIONS.md`](DECISIONS.md) & [README § Architecture Decision Records](#architecture-decision-records) | **15 architectural decisions** with trade-offs & discarded alternatives |
-| **6. Evaluation Protocol** | Multi-split isolation (`docs/escalation_v5.md`) | In-distribution (0.981) vs. out-of-distribution frozen heldout validation |
+| **Runnable Evaluation Pipeline** | [`run_eval.py`](run_eval.py), [`src/agent.py`](src/agent.py) | Full harness (`--baselines`, 9:38) and fast run (`--fast --baselines`, 2:59) with `--no-docker` support |
+| **Golden Evaluation Set** | [`golden_set/golden_250.csv`](golden_set/golden_250.csv) | 250 stratified examples, κ=0.939 (LLM-vs-human-reviewer agreement, single reviewer, no adjudication pass) |
+| **Evaluation Harness & Metrics** | [`src/eval/metrics.py`](src/eval/metrics.py), [`src/eval/llm_judge.py`](src/eval/llm_judge.py) | Automated metrics, LLM-as-judge rubric, and blind human agreement (n=70 pairs, ρ=−0.062, judge +4 leniency bias disclosed) |
+| **Technical Report** | [**`REPORT_6pp.pdf`**](REPORT_6pp.pdf) & [`REPORT.md`](REPORT.md) & [README § Technical Report](#technical-report) | Technical report covering framing, baselines, failure modes, held-out generalization gap, and future roadmap |
+| **Decision Log (ADR)** | [`DECISIONS.md`](DECISIONS.md) & [README § Architecture Decision Records](#architecture-decision-records) | 15 architectural decisions with rationales, trade-offs, and discarded alternatives |
+| **Code Walkthrough Guide** | [`docs/walkthrough_guide.md`](docs/walkthrough_guide.md) | 60-second walkthrough scripts & interview defense for the 5 critical files |
+| **Evaluation Protocol** | `docs/escalation_v5.md`, `golden_set/` | Multi-split isolation: in-distribution calibration vs frozen out-of-distribution heldout validation |
 
 ---
 
-## Interactive Diagnostic Demo
+## Diagnostic Execution Trace & System Demonstration
 
-Below is a diagnostic execution trace generated from the interactive evaluation console ([`demo.py`](demo.py)):
+Below is an execution trace from the interactive diagnostic console ([`demo.py`](demo.py)):
 
 <p align="center">
   <img src="docs/demo.png" alt="Commerce Support AI Agent - demo.py Interactive Execution" width="850"/>
@@ -42,7 +44,7 @@ flowchart TD
     subgraph ROUTING ["2. Intent & Confidence Analysis"]
         B --> C{"Intent Confidence"}
         C -- "Low Conf (&lt;0.45)" --> ESC["Escalation Gate"]
-        C -- "High Conf (&ge;0.45)" --> D["Qdrant Vector Store<br/>(Intent-Filtered Cosine Top-5)"]
+        C -- "High Conf (&ge;0.45)" --> D["Vector Store (Qdrant / In-Memory)<br/>(Intent-Filtered Cosine Top-5)"]
     end
 
     subgraph GENERATION ["3. Grounded Retrieval & Drafting"]
@@ -81,48 +83,33 @@ pip install -r requirements.txt
 # 2. Set API key
 cp .env.example .env
 # Edit .env → add GOOGLE_API_KEY=your_key_here
-# (Qdrant defaults to local Docker — no cloud account needed)
 
-# 3. Start local Qdrant (persistent across runs)
+# 3. Fast Verification (Pure-Python In-Memory Mode — ZERO Docker needed)
+# Uses pre-exported normalized vector store (data/memory_vectors.npz)
+python run_eval.py --fast --baselines --no-docker     # writes results_fast/ (~3 min)
+
+# 4. Full Benchmark Evaluation (all 250 cases, ~9.5 min)
+python run_eval.py --baselines
+
+# 5. Offline Inspection (No API key, zero LLM calls, <1 min) + 27 unit tests
+python run_eval.py --offline --max-examples 30   # writes results_offline/
+python -m pytest tests/ -q                       # 27 offline unit tests
+
+# 6. (Optional) Production-style Vector Database via Docker Qdrant
 docker run -d -p 6333:6333 qdrant/qdrant
-# Cloud alternative: set QDRANT_URL + QDRANT_API_KEY in .env instead.
-
-# 4. Download & prepare data (~2 min after download)
-python src/data_prep.py --source hf --max-threads 10000
-# Already have twcs.csv? Use --source skip (no re-download).
-
-# 5. Build vector index (~5 min, one-time)
 python src/qdrant_store.py --build
 
-# 6. Build golden evaluation set (OPTIONAL rebuild; golden_250.csv is committed and ready)
-# python src/eval/golden_builder.py   # Step 6a: 200-row core sample
-# python apply_review.py             # Step 6b: Apply human review
-# python merge_topup.py              # Step 6c: Merge 50 rare-class top-up rows -> golden_250.csv
-# python stamp_reasons.py            # Step 6d: Stamp human escalation triggers
+# 7. Leakage gate (fails loudly on violation; also auto-runs inside run_eval)
+python scripts/checks/check_leakage.py
 
-# 7. Run evaluation (pre-built assets ready; verifies headlines immediately)
-python run_eval.py --baselines
-# Fast verification instead (~3 min, stratified 30, fixed seed):
-python run_eval.py --fast --baselines     # writes results_fast/ (never results/)
-# Keyless inspection (<1 min, NOT headline numbers):
-python run_eval.py --offline --max-examples 30   # writes results_offline/
+# 8. Validate escalation on frozen held-out data (no LLM calls, <1 min)
+python scripts/eval/eval_heldout.py
 
-# 8. Leakage gate (fails loudly on violation; also auto-runs inside run_eval)
-python scripts/check_leakage.py
-
-# 9. Validate escalation on fresh data (no LLM calls, <1 min)
-python sample_heldout.py   # first time only: draws 50 fresh threads
-python eval_heldout.py     # frozen-rule check vs golden_set/heldout_50.csv
-
-# 10. Offline inspection (no API key, <1 min) + tests
-python run_eval.py --offline --max-examples 30
-python -m pytest tests/ -q   # 27 offline tests
-
-# 11. Launch demo
+# 9. Launch interactive demo
 streamlit run app.py
 ```
 
-Further evidence: retrieval quality (`python scripts/retrieval_eval.py` → intent-consistency@1 0.49/@3 0.685/@5 0.755 — the measurement behind the intent pre-filter); ablation RAG 24.34 vs no-retrieval 23.46 (n=50, `scripts/ablate.py`); blind agent-vs-template A/B for judge and human (`results/blind_40.csv` + `results/blind_30.csv` pairs, `results/blind_key*.json` unblinding keys, merged scoring in `results/human_blind_70_scored.csv`); full write-up in `REPORT.md` (≤6pp), decisions in `DECISIONS.md`, reviewer audit in `REVIEW.md`, method docs in `docs/`.
+Further evidence: retrieval quality (`python scripts/checks/retrieval_eval.py` → intent-consistency@1 0.49/@3 0.685/@5 0.755 — the measurement behind the intent pre-filter); ablation RAG 24.34 vs no-retrieval 23.46 (n=50, `scripts/checks/ablate.py`); blind agent-vs-template A/B for judge and human (`results/blind_40.csv` + `results/blind_30.csv` pairs, `results/blind_key*.json` unblinding keys, merged scoring in `results/human_blind_70_scored.csv`); full write-up in `REPORT.md` (≤6pp), decisions in `DECISIONS.md`, reviewer audit in `REVIEW.md`, method docs in `docs/`.
 
 ---
 
@@ -134,7 +121,7 @@ commerce-support-agent/
 │   ├── intent_taxonomy.py    # 7 intent definitions (single source of truth)
 │   ├── data_prep.py          # Download + filter + thread reconstruction
 │   ├── embedder.py           # Dense embedding wrapper (768-dimensional)
-│   ├── qdrant_store.py       # Vector index build & filtered retrieval
+│   ├── qdrant_store.py       # Vector index build, in-memory fallback, filtered retrieval
 │   ├── agent.py              # Full pipeline: classify→retrieve→draft→decide
 │   ├── escalation.py         # Deterministic escalation rules + reasons
 │   └── eval/
@@ -143,9 +130,16 @@ commerce-support-agent/
 │       └── llm_judge.py      # LLM-as-judge rubric + human agreement
 ├── golden_set/
 │   └── golden_250.csv        # 250 hand-labelled evaluation examples
+├── scripts/
+│   ├── labeling/             # LLM annotation & human review diffs
+│   ├── golden_set/           # Sampling, merging, and curation utilities
+│   ├── eval/                 # Evaluation scripts for 4-set, 5-set, held-out
+│   ├── maintenance/          # Refresh and reply reconstruction scripts
+│   └── checks/               # Leakage check, retrieval eval, ablations
 ├── results/                  # Eval outputs (generated)
 ├── app.py                    # Streamlit demo
-├── run_eval.py               # One-command evaluation harness
+├── demo.py                   # Diagnostic CLI console
+├── run_eval.py               # One-command evaluation harness (--no-docker support)
 ├── requirements.txt
 └── .env.example
 ```
@@ -160,9 +154,9 @@ commerce-support-agent/
 | B1 TF-IDF (fair: 8k weak-labelled non-golden threads, seed 42) | 0.508 | 0.464 | — | — | — |
 | Generic Brand Template (Blind A/B) | — | — | — | — | 19.0 human / 22.1 judge |
 | No-Retrieval Draft (Ablation, n=50) | — | — | — | — | — / 23.46 judge |
-| **Our Agent (Golden-250, v5 locked)** | **0.820** [0.768–0.864] | **0.809** [0.753–0.855] | **0.981** [0.938–1.000] | **0.019** (1/53 leak) | **20.7** human / 24.4 judge |
 | **Held-out Set A (Frozen n=50, v5 locked)** | — | — | **0.733** (11/15 caught) | **0.267** (4/15 leaks) | — |
 | **Held-out Set B (Frozen n=50, v5 locked)** | — | — | **0.364** (4/11 caught) | **0.636** (7/11 leaks) | — |
+| **Our Agent (Golden-250, in-distribution)** | **0.820** [0.768–0.864] | **0.809** [0.753–0.855] | **0.981** [0.938–1.000] | **0.019** (1/53 leak) | **20.7** human / 24.4 judge |
 
 > [!IMPORTANT]
 > **Core Technical Finding: The Generalization Gap in Deterministic Safety Routing**  
@@ -170,7 +164,7 @@ commerce-support-agent/
 > - **Held-out A (n=50)**: Recall **0.733**, False-Auto **0.267**
 > - **Held-out B (n=50)**: Recall **0.364**, False-Auto **0.636**
 > 
-> **Root Cause**: Regular expressions and keyword lists overfit to the exact vocabulary observed during calibration (e.g. catching *"unauthorized transaction"* but missing *"charged twice"* or typos like *"fladuent"*). This demonstrates that pure regex safety gates fail to generalize across unseen conversational paraphrases without semantic vector gating.
+> **Explicit Engineering Posture**: **We would not ship this system to production without closing this gap.** Regular expressions and keyword lists overfit to the exact vocabulary observed during calibration (e.g. catching *"unauthorized transaction"* but missing *"charged twice"* or typos like *"fladuent"*). This demonstrates that pure regex safety gates fail to generalize across unseen conversational paraphrases without semantic vector gating.
 
 Primary conclusion: our agent substantially improves intent routing over both
 trivial and classical baselines (+31.2% accuracy over fair TF-IDF). Retrieval provides measurable benefit
@@ -199,7 +193,7 @@ challenge.** See `docs/escalation_v5.md` for the per-change motivation log.
 | held-out A (frozen) | 50 | 15 | 0.733 | 0.733 | 0.267 |
 | held-out B (frozen) | 50 | 11 | 0.800 | 0.364 | 0.636 |
 
-**How**: v0 rules never fired (recall 0.00 — dead `conf<0.72` branch, since removed). v1–v3 were tuned on golden itself (1.00, disclosed). v4 was iterated on cal-100 ONLY (`docs/escalation_v4.md`). **v5** extended coverage to cal2-100 (second 100-row calibration set, labelled BEFORE v5 existed) with expanded repeat-contact patterns, a narrow LLM tiebreaker for ultra-short messages, and 10-digit phone→public-PII detection — full per-change log in `docs/escalation_v5.md`. The 5-set table above is the claim; held-out sets stay frozen (`python eval_heldout.py`).
+**How**: v0 rules never fired (recall 0.00 — dead `conf<0.72` branch, since removed). v1–v3 were tuned on golden itself (1.00, disclosed). v4 was iterated on cal-100 ONLY (`docs/escalation_v4.md`). **v5** extended coverage to cal2-100 (second 100-row calibration set, labelled BEFORE v5 existed) with expanded repeat-contact patterns, a narrow LLM tiebreaker for ultra-short messages, and 10-digit phone→public-PII detection — full per-change log in `docs/escalation_v5.md`. The 5-set table above is the claim; held-out sets stay frozen (`python scripts/eval/eval_heldout.py`).
 
 ### Reply quality: human primary, judge secondary (n=250 judged, n=70 human)
 
@@ -295,7 +289,7 @@ The judge is unreliable for absolute grades and for safety (pilot showed safety 
 
 1. **Escalation has multiple numbers across datasets, not one.** v5 rules score cal P/R 0.816/1.000, cal2 0.725/1.000, golden-250 0.867/0.981 (false-auto 0.019); frozen held-outs give 0.733/0.733 (held-out A) and 0.800/0.364 (held-out B, 63.6% false-auto rate). Believe the held-outs for generalization, golden for in-distribution. Any single recall quoted alone is cherry-picking — including ours.
 
-2. **Intent labels are human-reviewed, but by one reviewer in sessions.** All 250 rows individually read (200 + 50 top-up); LLM↔human intent κ=0.939 on the first 200. Single-reviewer labels still carry individual bias; no adjudication pass was done.
+2. **Intent labels are human-reviewed, but by one reviewer in sessions.** All 250 rows individually read (200 + 50 top-up); LLM↔human intent κ=0.939 (LLM-vs-human-reviewer agreement, single reviewer, no adjudication pass) on the first 200. Single-reviewer labels still carry individual bias; no adjudication pass was done.
 
 3. **B1's old 92% beat our agent — because it cheated.** That revision fit TF-IDF+LogReg on the golden texts themselves (train = test). It is withdrawn; the fair B1 (8k weak-labelled threads, 0.508) loses honestly. If a baseline beats you, check contamination before celebrating or despairing.
 
@@ -351,21 +345,21 @@ flowchart TD
 |---|----------|-----------|
 | 1 | Brand: AmazonHelp over Apple/Spotify | Highest volume (~100k threads), most diverse intents, immediately familiar to evaluators |
 | 2 | 7 intents (not 10+) | Label quality > granularity; 7 keeps per-class counts measurable in a 200-sample set |
-| 3 | Single compact LLM family for classifier, drafter AND judge | Removes cross-model confounds from comparisons; fastest; quality verified sufficient (0 length violations, κ=0.939) |
+| 3 | Single compact LLM family for classifier, drafter AND judge | Removes cross-model confounds from comparisons; fastest; quality verified sufficient (0 length violations, κ=0.939 LLM-human agreement) |
 | 4 | Embed `(customer + SEP + reply)` pairs, not just customer text | Captures resolution context — "where is my package" + "please DM us" retrieves better than the complaint alone |
 | 5 | Qdrant local-Docker-first, cloud-compatible | Reviewers reproduce with no account; `QDRANT_URL`/`KEY` optional overrides; same code path either way |
 | 6 | Top-5 retrieval (not 3 or 10) | 3 is too few for style diversity; 10 inflates the prompt past the task's useful context |
 | 7 | 280-char hard limit in drafter prompt | Twitter-authentic output; forces concision over verbosity |
-| 8 | Two-pass labelling with corrections as code | LLM first-pass cuts labelling time; `apply_review.py` records every human change as a re-runnable diff instead of a hand-edited CSV |
+| 8 | Two-pass labelling with corrections as code | LLM first-pass cuts labelling time; `scripts/labeling/apply_review.py` records every human change as a re-runnable diff instead of a hand-edited CSV |
 | 9 | Cosine distance in Qdrant | Stable for normalized embeddings across varying text lengths |
 | 10 | Payload filter by intent before retrieval | Avoids cross-intent contamination (ORDER_STATUS examples confusing DEVICE_TECH replies) |
 | 11 | Same-family judge, kept after it failed | Consistency first; when agreement flopped (ρ=-0.062, n=70) we reported per-dimension results instead of swapping judges until one passed |
 | 12 | Spearman over Pearson for agreement | Ordinal 1–5 scores with outliers and ceiling pile-up → rank correlation is the honest metric |
 | 13 | Oversample GENERAL_COMPLAINT | Hardest class with the most evaluation signal; underrepresented by keyword filtering |
-| 14 | Rules before LLM in escalation, definition frozen before labelling | Deterministic tiers the LLM cannot override; 7-rule human definition fixed in `apply_review.py` *before* any label was judged — refused to tune recall against the LLM labeller's loose criteria |
+| 14 | Rules before LLM in escalation, definition frozen before labelling | Deterministic tiers the LLM cannot override; 7-rule human definition fixed in `scripts/labeling/apply_review.py` *before* any label was judged — refused to tune recall against the LLM labeller's loose criteria |
 | 15 | Frozen held-out sets over repeat tuning rounds | After calibrating to 1.00 on 200 golden rows, froze rules and measured two fresh 50s (held-outs 0.60/0.36) instead of tuning to 1.00 twice |
 
-### Engineering Fixes (Production Edge Cases Solved)
+### Engineering Fixes (Operational Edge Cases Solved)
 
 - `.0`-suffixed reply IDs: `in_response_to_tweet_id` parses as `"272.0"` vs `tweet_id "272"` → join matched 0 rows; normalization fixed 0 → 154,985 threads.
 - Dense Embeddings at 768 dims: Embedding dimension aligned to schema with `output_dimensionality=768`.
@@ -385,9 +379,9 @@ flowchart TD
 2. Pre-filter each thread's first customer message using intent-specific keyword lists
 3. Stratified sample to per-intent targets (pools: ORDER 2810, RETURN 695, ACCOUNT 496, PRIME 1141, DEVICE 1524, DAMAGE 108, COMPLAINT 299)
 4. **LLM first-pass** (Google Gemini `gemini-3.1-flash-lite`): generates `llm_intent` + `escalate_yn` labels
-5. **Human second-pass** (`apply_review.py`, all 200 rows individually read): 10 intent corrections + 44 escalation corrections against the fixed 7-rule escalation definition in `apply_review.py`; `human_verified=True`, `labelled_by=human_review_v1`
-6. **Rare-class top-up** (`merge_topup.py`, +50 rows from OUTSIDE the corpus): DEVICE 8→24, PRIME 14→28 — every class now ≥24, golden stays ≤250
-7. **Kappa check**: `python src/eval/golden_builder.py --kappa` → intent κ = **0.939** (Substantial Agreement) on the first 200 (escalation labels intentionally diverge from the LLM's loose criteria — that divergence is the point)
+5. **Human second-pass** (`scripts/labeling/apply_review.py`, all 200 rows individually read): 10 intent corrections + 44 escalation corrections against the fixed 7-rule escalation definition in `scripts/labeling/apply_review.py`; `human_verified=True`, `labelled_by=human_review_v1`
+6. **Rare-class top-up** (`scripts/golden_set/merge_topup.py`, +50 rows from OUTSIDE the corpus): DEVICE 8→24, PRIME 14→28 — every class now ≥24, golden stays ≤250
+7. **Kappa check**: `python src/eval/golden_builder.py --kappa` → intent κ = **0.939 (LLM-vs-human-reviewer agreement, single reviewer, no adjudication pass)** on the first 200 (escalation labels intentionally diverge from the LLM's loose criteria — that divergence is the point)
 
 | Intent | Final Count |
 |--------|-------------|
@@ -463,4 +457,4 @@ Verified hygiene properties:
 
 ---
 
-*Commerce Support AI Agent · Empirical Evaluation Benchmark · Powered by Google Gemini (gemini-3.1-flash-lite) + Qdrant Vector Engine*
+*Commerce Support AI Agent · Empirical Evaluation Benchmark · Powered by Google Gemini (gemini-3.1-flash-lite) + Qdrant / Pure-Python Vector Engine*

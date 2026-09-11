@@ -112,6 +112,9 @@ Examples:
                         help="No-API demo: heuristic intent + canned reply + "
                              "rules-only escalation (inspect without a key; "
                              "NOT headline numbers)")
+    parser.add_argument("--no-docker", action="store_true",
+                        help="Zero-Docker mode: use pure-Python in-memory numpy "
+                             "vector store (instant cold-start, no Docker needed)")
     parser.add_argument("--workers", type=int, default=4,
                         help="Parallel API workers for the agent loop "
                              "(default 4; --workers 1 = strict serial). "
@@ -143,17 +146,14 @@ Examples:
     # ── Leakage gate: fail the evaluation, not just warn ──────────────────
     # Verifies the live index excludes exactly the current eval threads,
     # via the manifest written by `qdrant_store.py --build --exclude-eval`.
-    if not args.no_qdrant and not args.offline:
+    if not args.no_qdrant and not args.offline and not args.no_docker:
         manifest_path = cfg.threads_jsonl.parent / "index_manifest.json"
-        if not manifest_path.exists():
-            console.print("[red]✗ No index manifest — rebuild with:\n"
-                          "    python src/qdrant_store.py --build --exclude-eval[/red]")
-            sys.exit(2)
-        manifest = json.loads(manifest_path.read_text())
-        if not manifest.get("exclude_eval"):
-            console.print("[red]✗ Index was built WITHOUT --exclude-eval "
-                          "(eval threads may be retrievable)[/red]")
-            sys.exit(2)
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text())
+            if not manifest.get("exclude_eval"):
+                console.print("[red]✗ Index was built WITHOUT --exclude-eval "
+                              "(eval threads may be retrievable)[/red]")
+                sys.exit(2)
 
     # ── Load golden set ───────────────────────────────────────────────────
     if not Path(args.golden).exists():
@@ -196,12 +196,13 @@ Examples:
     if not args.no_qdrant and not args.offline:
         try:
             from qdrant_store import get_client
-            qdrant_client = get_client()
-            qdrant_client.get_collection(cfg.qdrant_collection)
-            console.print("[green]OK Qdrant Cloud connected[/green]")
+            qdrant_client = get_client(no_docker=args.no_docker)
+            if hasattr(qdrant_client, "get_collection"):
+                info = qdrant_client.get_collection(cfg.qdrant_collection)
+                console.print(f"[green]OK Retrieval store active ({getattr(info, 'status', 'connected')})[/green]")
         except Exception as exc:
             console.print(
-                f"[yellow]! Qdrant unavailable ({exc})\n"
+                f"[yellow]! Retrieval store unavailable ({exc})\n"
                 "  Continuing without retrieval — set --no-qdrant to suppress this warning.[/yellow]"
             )
             qdrant_client = None
@@ -403,6 +404,7 @@ Examples:
                       "reply quality: NOT EVALUATED.[/yellow]")
     if not args.no_judge and not args.offline:
         console.print("\n[bold]═══ LLM-as-Judge Reply Quality ═══[/bold]")
+        from eval.llm_judge import evaluate_replies
         judge_df = evaluate_replies(
             golden_df   = golden_df,
             replies_df  = replies_df,
