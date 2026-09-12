@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "timestamp_utc": "2026-09-12T07:00:34+00:00",
+    "timestamp_utc": "2026-09-12T07:12:28+00:00",
     "mode": "live",
     "golden": "D:\\NExp2-13\\golden_set\\golden_250.csv",
     "classifier_model": "gemini-3.1-flash-lite",
