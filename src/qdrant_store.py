@@ -150,6 +150,28 @@ class InMemoryVectorStore:
             ))
         return hits
 
+    def scroll(
+        self,
+        collection_name: str,
+        limit: int = 100,
+        offset: Optional[int] = None,
+        with_payload: bool = True,
+        with_vectors: bool = False,
+    ):
+        start = offset or 0
+        points = []
+        class Record:
+            def __init__(self, id, payload):
+                self.id = id
+                self.payload = payload
+
+        slice_payloads = self.payloads[start:start + limit]
+        for idx, p in enumerate(slice_payloads):
+            pt_id = p.get("thread_id", start + idx)
+            points.append(Record(id=pt_id, payload=p if with_payload else {}))
+        next_offset = start + len(slice_payloads) if start + len(slice_payloads) < len(self.payloads) else None
+        return points, next_offset
+
 
 # ── Qdrant / Fallback client loader ────────────────────────────────────────
 

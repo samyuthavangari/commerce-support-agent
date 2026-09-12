@@ -1,5 +1,7 @@
 # Commerce Support AI Agent: Empirical Evaluation & Safe Routing Pipeline
 
+[![Evaluation Pipeline](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml/badge.svg)](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml)
+
 > **Domain Focus**: E-Commerce First-Response Customer Support (`@AmazonHelp`)  
 > **Model & Retrieval Stack**: Google Gemini (`gemini-3.1-flash-lite`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine / Pure-Python In-Memory Fallback · LangChain Core  
 > **Evaluation Harness**: 250-sample human-reviewed benchmark, deterministic multi-tier escalation, isolated held-out validation splits  
@@ -22,6 +24,14 @@
 | **Evaluation Protocol** | `docs/escalation_v5.md`, `golden_set/` | Multi-split isolation: in-distribution calibration vs frozen out-of-distribution heldout validation |
 
 ---
+
+### Automated Public CI Evaluation & Regression Gate
+
+[![Evaluation Pipeline](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml/badge.svg)](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml)
+
+Every commit and pull request executes continuous integration on ephemeral Ubuntu runners with zero external API requirements:
+- **2-Click Manual Run**: Go to [Actions &rarr; Evaluation Pipeline](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml) and click **"Run workflow"**.
+- **Automated Verification**: Runs 27 unit tests &rarr; verifies zero data leakage &rarr; re-runs full benchmark evaluation in replay mode &rarr; renders live markdown scorecard table directly into the GitHub Actions job summary.
 
 ## Diagnostic Execution Trace & System Demonstration
 

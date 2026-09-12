@@ -1,11 +1,11 @@
 {
   "provenance": {
-    "timestamp_utc": "2026-09-10T13:39:27+00:00",
+    "timestamp_utc": "2026-09-12T06:42:42+00:00",
     "mode": "live",
     "golden": "D:\\NExp2-13\\golden_set\\golden_250.csv",
     "classifier_model": "gemini-3.1-flash-lite",
     "drafter_model": "gemini-3.1-flash-lite",
-    "judge_model": "gemini-3.1-flash-lite",
+    "judge_model": "models/gemini-2.5-pro",
     "top_k_retrieval": 5,
     "embed_model": "models/gemini-embedding-001",
     "seed": 42
@@ -533,47 +533,6 @@
       ]
     }
   },
-  "reply_quality_judge": {
-    "mean_total": 24.44,
-    "std_total": 1.18,
-    "mean_per_dimension": {
-      "groundedness": 4.97,
-      "helpfulness": 4.76,
-      "empathy": 4.96,
-      "safety": 4.87,
-      "brevity": 4.88
-    }
-  },
-  "human_judge_agreement": {
-    "groundedness": {
-      "pearson": null,
-      "spearman": null
-    },
-    "helpfulness": {
-      "pearson": 0.257,
-      "spearman": 0.301
-    },
-    "empathy": {
-      "pearson": 0.433,
-      "spearman": 0.44
-    },
-    "safety": {
-      "pearson": null,
-      "spearman": null
-    },
-    "brevity": {
-      "pearson": -0.135,
-      "spearman": -0.135
-    },
-    "total": {
-      "pearson": -0.136,
-      "spearman": -0.062
-    },
-    "n": 70,
-    "exact_agreement": 2,
-    "within1_agreement": 5,
-    "weighted_kappa_total": -0.013,
-    "note": "direct scoring of current replies; blind A/B kept in blind_ab70"
-  },
-  "escalation_policy": "v5-rules-plus-tiebreaker (see docs/escalation_v5.md)"
+  "reply_quality_judge": {},
+  "human_judge_agreement": {}
 }

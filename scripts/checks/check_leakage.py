@@ -38,6 +38,7 @@ def norm(t: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-retrieval", action="store_true")
+    ap.add_argument("--no-docker", action="store_true", help="Use in-memory vector store without Docker")
     args = ap.parse_args()
     failures: list[str] = []
 
@@ -50,7 +51,7 @@ def main() -> int:
 
     # ── 1. collection payloads must not contain eval threads ──────────────
     from qdrant_store import get_client
-    client = get_client()
+    client = get_client(no_docker=args.no_docker)
     indexed_ids: set[str] = set()
     offset = None
     while True:
