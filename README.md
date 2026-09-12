@@ -3,7 +3,7 @@
 [![Evaluation Pipeline](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml/badge.svg)](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml)
 
 > **Domain Focus**: E-Commerce First-Response Customer Support (`@AmazonHelp`)  
-> **Model & Retrieval Stack**: Google Gemini (`gemini-3.1-flash-lite`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine / Pure-Python In-Memory Fallback · LangChain Core  
+> **Model & Retrieval Stack**: llm (`llm`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine / Pure-Python In-Memory Fallback · LangChain Core  
 > **Evaluation Harness**: 250-sample human-reviewed benchmark, deterministic multi-tier escalation, isolated held-out validation splits  
 > **Reproducibility**: Fast evaluation (`run_eval.py --fast --baselines`, n=30) executes in **2:59 measured** (zero Docker required via in-memory vector store); full benchmark (`run_eval.py --baselines`, n=250) completes in **9:38 measured** (4 parallel workers); offline inspection executes in <1 min with zero API calls.  
 > **Cold-Start Timing**: Fresh clone → venv → install → offline evaluation takes **4:15 measured** in pure-Python `--no-docker` mode (**8:40 measured** if pulling & launching Qdrant Docker).  
@@ -460,9 +460,9 @@ Verified hygiene properties:
 | `QDRANT_PORT` | `6333` | Qdrant server port |
 | `QDRANT_URL` | `http://localhost:6333` | Local Docker (default) or Cloud cluster URL |
 | `QDRANT_API_KEY` | _(empty)_ | Only needed for password-protected / Cloud clusters |
-| `CLASSIFIER_MODEL` | `gemini-3.1-flash-lite` | Intent classifier model identifier |
-| `DRAFTER_MODEL` | `gemini-3.1-flash-lite` | Reply drafter model identifier |
-| `JUDGE_MODEL` | `gemini-3.1-flash-lite` | Evaluation judge model identifier |
+| `CLASSIFIER_MODEL` | `llm` | Intent classifier model identifier |
+| `DRAFTER_MODEL` | `llm` | Reply drafter model identifier |
+| `JUDGE_MODEL` | `llm` | Evaluation judge model identifier |
 | `TOP_K_RETRIEVAL` | `5` | Number of RAG examples |
 
 ---
