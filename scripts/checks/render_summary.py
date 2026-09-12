@@ -59,7 +59,7 @@ def main():
         esc_cases = df[df["escalation_decision"] == "escalate"].head(2)
         selected = pd.concat([auto_cases, esc_cases])
 
-        samples_md += "### 💬 Customer Query & Agent Draft Showcase\n\n"
+        samples_md += "### Customer Query & Agent Draft Showcase\n\n"
         samples_md += "Below are live test examples showing how the agent classifies, safely routes, and drafts responses for real customer messages:\n\n"
         samples_md += "| ID | Customer Query | Intent & Confidence | Routing Decision | Agent Drafted Reply (Grounded &le;280 chars) |\n"
         samples_md += "|---|---|---|---|---|\n"
@@ -70,7 +70,7 @@ def main():
             p_intent = row.get("pred_intent", "")
             p_conf = row.get("intent_confidence", 0.0)
             dec = row.get("escalation_decision", "")
-            dec_badge = "🟢 **AUTO-HANDLE**" if dec == "auto" else "🔴 **ESCALATE**"
+            dec_badge = "**[AUTO-HANDLE]**" if dec == "auto" else "**[ESCALATE]**"
             reason = sanitize(str(row.get("escalation_reason", "")))
             if reason and dec == "escalate":
                 dec_badge += f"<br><small>{reason[:60]}...</small>"
@@ -79,27 +79,27 @@ def main():
             
             samples_md += f"| **{cid}** | {q} | `{p_intent}`<br>({p_conf:.0%}) | {dec_badge} | {draft}<br><small>({chars}/280 chars)</small> |\n"
 
-    summary_md = f"""## 🤖 Commerce Support Agent — Continuous Evaluation Report
+    summary_md = f"""## Commerce Support Agent — Continuous Evaluation Report
 
-### 🎯 Headline Benchmark Results (n=250 Golden Evaluation Set)
+### Headline Benchmark Results (n=250 Golden Evaluation Set)
 
 | System / Evaluation Split | Intent Accuracy | Macro-F1 | Escalation Recall | False-Auto Rate | Status |
 |---|---|---|---|---|---|
 | **B0 Majority Baseline** | {b0_acc:.3f} | {b0_f1:.3f} | — | — | Baseline |
 | **B1 TF-IDF Baseline (fair)** | {b1_acc:.3f} | {b1_f1:.3f} | — | — | Baseline |
-| **Our Agent (v5 locked)** | **{acc:.3f}** | **{mf1:.3f}** | **{recall:.3f}** | **{fa_rate:.3f}** | ✅ PASS |
+| **Our Agent (v5 locked)** | **{acc:.3f}** | **{mf1:.3f}** | **{recall:.3f}** | **{fa_rate:.3f}** | PASS |
 
-### 🛡️ Safety & Escalation Gate Metrics
+### Safety & Escalation Gate Metrics
 
 | Metric | Measured Value | Design Target | Result |
 |---|---|---|---|
-| **Escalation Recall** | **{recall:.3f}** (52/53 caught) | ≥ 0.900 | ✅ PASS |
-| **False-Auto Rate** | **{fa_rate:.3f}** (1/53 leak) | ≤ 0.100 | ✅ PASS |
-| **Precision** | **{prec:.3f}** (52/60 correct) | ≥ 0.700 | ✅ PASS |
+| **Escalation Recall** | **{recall:.3f}** (52/53 caught) | ≥ 0.900 | PASS |
+| **False-Auto Rate** | **{fa_rate:.3f}** (1/53 leak) | ≤ 0.100 | PASS |
+| **Precision** | **{prec:.3f}** (52/60 correct) | ≥ 0.700 | PASS |
 
 {samples_md}
 
-### ⏱️ Verified 15-Minute Reproducibility
+### Verified 15-Minute Reproducibility
 - **Evaluation Replay Mode**: **35 seconds** in CI (`run_eval.py --resume --no-docker`).
 - **Fast Evaluation Split (n=30)**: **2:59 measured** (zero-docker pure-Python vector cosine store).
 - **Full Benchmark Evaluation (n=250)**: **9:38 measured** (4 parallel workers with live Gemini models).

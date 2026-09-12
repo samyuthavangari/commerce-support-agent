@@ -1,9 +1,9 @@
 # Commerce Support AI Agent: Empirical Evaluation & Safe Routing Pipeline
 
 [![Evaluation Pipeline](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml/badge.svg)](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml)
-[![▶️ Run Evaluation in GitHub Actions](https://img.shields.io/badge/▶️%20Run%20Evaluation-GitHub%20Actions-238636?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml)
-[![💬 Live Customer Query Showcase](https://img.shields.io/badge/💬%20Live%20Showcase-Customer%20Queries%20%26%20Drafts-blue?style=for-the-badge)](#-customer-query--agent-draft-showcase)
-[![⏱️ 15-Min Reproducibility Guarantee](https://img.shields.io/badge/⏱️%20Reproducibility-%3C15%20min%20Guarantee-blueviolet?style=for-the-badge)](#️-what-15-minutes-runnable-means)
+[![Run Evaluation in GitHub Actions](https://img.shields.io/badge/Run%20Evaluation-GitHub%20Actions-238636?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/samyuthavangari/commerce-support-agent/actions/workflows/eval.yml)
+[![Customer Query Showcase](https://img.shields.io/badge/Live%20Showcase-Customer%20Queries%20%26%20Drafts-blue?style=for-the-badge)](#customer-query--agent-draft-showcase)
+[![15-Min Reproducibility Guarantee](https://img.shields.io/badge/Reproducibility-%3C15%20min%20Guarantee-blueviolet?style=for-the-badge)](#what-15-minutes-runnable-means)
 
 > **Domain Focus**: E-Commerce First-Response Customer Support (`@AmazonHelp`)  
 > **Model & Retrieval Stack**: llm (`llm`) · `gemini-embedding-001` (768d Matryoshka) · Qdrant Vector Engine / Pure-Python In-Memory Fallback · LangChain Core  
@@ -14,7 +14,7 @@
 
 ---
 
-### ⏱️ What "15 Minutes Runnable" Means
+### What "15 Minutes Runnable" Means
 
 In AI and ML engineering evaluations (take-home assignments and technical benchmarks), **"runnable in < 15 minutes"** is a strict reproducibility requirement:
 
@@ -31,16 +31,16 @@ This repository satisfies and beats this rubric across all four execution modes:
 
 ---
 
-## 💬 Customer Query & Agent Draft Showcase
+## Customer Query & Agent Draft Showcase
 
 Here is how the autonomous agent handles incoming customer messages in real production scenarios:
 
 | ID | Customer Query | Intent & Confidence | Routing Decision | Agent Drafted Reply (Grounded &le;280 chars) |
 |---|---|---|---|---|
-| **GS_0002** | *"@AmazonHelp DPD, they sent me a text at 10:07 saying they would deliver my Amazon order between 11:28 and 12:28"* | `ORDER_STATUS`<br>**(100% conf)** | 🟢 **AUTO-HANDLE**<br><small>Safe automated response</small> | *"I am very sorry for the uncertainty regarding your delivery window. I understand how frustrating it is to wait for a package. Please send us a DM with your order number so we can look into the status of your shipment for you. ^AM"*<br><small>(229/280 chars)</small> |
-| **GS_0004** | *"Does @AmazonHelp do price adjustments? My order was placed on 01 OCT."* | `GENERAL_COMPLAINT`<br>**(85% conf)** | 🟢 **AUTO-HANDLE**<br><small>Policy inquiry</small> | *"I’m sorry for the frustration regarding your order pricing. We don't offer price adjustments after an order is placed, as our prices fluctuate based on market demand. Please send us a DM so we can take a closer look at your specific order details. ^AS"*<br><small>(251/280 chars)</small> |
-| **GS_0001** | *"@AmazonHelp I have an Prime account and three of my last order are delayed. I had several calls with your french department assistance. And no one is able to give me a real answer... it's 5 days now"* | `ORDER_STATUS`<br>**(95% conf)** | 🔴 **ESCALATE TO HUMAN**<br><small>`[rule:repeat_contact]` Prior support contact failed</small> | *"I am very sorry to hear about the repeated delays with your orders and the frustration caused by the lack of clear information. I would like to look into this for you. Please send us a DM with your order numbers so we can investigate this further. ^AM"*<br><small>(251/280 chars)</small> |
-| **GS_0003** | *"@AmazonHelp unsatisfied Eid amazon. Too much bad 405-8158996-7018755. order still not recieve too much fake commitment from representative"* | `ORDER_STATUS`<br>**(95% conf)** | 🔴 **ESCALATE TO HUMAN**<br><small>`[rule:public_pii]` Customer posted order ID publicly</small> | *"I am truly sorry to hear about the delay and the frustration this has caused, especially during Eid. We want to look into this for you right away. Please send us a DM with your order number so we can investigate the status and assist you further. ^AM"*<br><small>(250/280 chars)</small> |
+| **GS_0002** | *"@AmazonHelp DPD, they sent me a text at 10:07 saying they would deliver my Amazon order between 11:28 and 12:28"* | `ORDER_STATUS`<br>**(100% conf)** | **[AUTO-HANDLE]**<br><small>Safe automated response</small> | *"I am very sorry for the uncertainty regarding your delivery window. I understand how frustrating it is to wait for a package. Please send us a DM with your order number so we can look into the status of your shipment for you. ^AM"*<br><small>(229/280 chars)</small> |
+| **GS_0004** | *"Does @AmazonHelp do price adjustments? My order was placed on 01 OCT."* | `GENERAL_COMPLAINT`<br>**(85% conf)** | **[AUTO-HANDLE]**<br><small>Policy inquiry</small> | *"I’m sorry for the frustration regarding your order pricing. We don't offer price adjustments after an order is placed, as our prices fluctuate based on market demand. Please send us a DM so we can take a closer look at your specific order details. ^AS"*<br><small>(251/280 chars)</small> |
+| **GS_0001** | *"@AmazonHelp I have an Prime account and three of my last order are delayed. I had several calls with your french department assistance. And no one is able to give me a real answer... it's 5 days now"* | `ORDER_STATUS`<br>**(95% conf)** | **[ESCALATE TO HUMAN]**<br><small>`[rule:repeat_contact]` Prior support contact failed</small> | *"I am very sorry to hear about the repeated delays with your orders and the frustration caused by the lack of clear information. I would like to look into this for you. Please send us a DM with your order numbers so we can investigate this further. ^AM"*<br><small>(251/280 chars)</small> |
+| **GS_0003** | *"@AmazonHelp unsatisfied Eid amazon. Too much bad 405-8158996-7018755. order still not recieve too much fake commitment from representative"* | `ORDER_STATUS`<br>**(95% conf)** | **[ESCALATE TO HUMAN]**<br><small>`[rule:public_pii]` Customer posted order ID publicly</small> | *"I am truly sorry to hear about the delay and the frustration this has caused, especially during Eid. We want to look into this for you right away. Please send us a DM with your order number so we can investigate the status and assist you further. ^AM"*<br><small>(250/280 chars)</small> |
 
 ---
 
