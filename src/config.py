@@ -57,6 +57,8 @@ def load_config() -> Config:
     def _require(key: str) -> str:
         val = os.getenv(key, "").strip()
         if not val or val.startswith("your_"):
+            if os.getenv("CI") == "true" and key == "GOOGLE_API_KEY":
+                return "ci-mock-key-not-used-in-replay"
             missing.append(key)
         return val
 

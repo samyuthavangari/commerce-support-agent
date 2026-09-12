@@ -34,7 +34,12 @@ from rich.panel import Panel
 from rich.table import Table
 from tqdm import tqdm
 
+import os
 sys.path.insert(0, "src")
+
+# Default dummy creds if running in offline / resume / CI mode
+if not os.environ.get("GOOGLE_API_KEY") or os.environ.get("GOOGLE_API_KEY", "").startswith("your_"):
+    os.environ["GOOGLE_API_KEY"] = "ci-mock-key-not-used-in-replay"
 
 from config import cfg                            # noqa: E402
 from agent import run_agent                       # noqa: E402

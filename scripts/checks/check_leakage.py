@@ -24,7 +24,12 @@ import re
 import sys
 from pathlib import Path
 
+import os
 import pandas as pd
+
+# Dummy creds before importing config if running in keyless CI/check mode
+if not os.environ.get("GOOGLE_API_KEY") or os.environ.get("GOOGLE_API_KEY", "").startswith("your_"):
+    os.environ["GOOGLE_API_KEY"] = "ci-mock-key-not-used-in-replay"
 
 from config import cfg  # noqa: E402
 

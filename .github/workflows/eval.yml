@@ -16,6 +16,8 @@ jobs:
   eval:
     name: Test, Leakage Gate & Replay Evaluation
     runs-on: ubuntu-latest
+    env:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY || 'ci-mock-key-not-used-in-replay' }}
 
     steps:
       - name: Checkout Repository
