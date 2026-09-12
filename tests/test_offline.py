@@ -59,7 +59,7 @@ def test_taxonomy_schema():
 
 def test_intent_schema_json_matches_code():
     from intent_taxonomy import INTENT_NAMES
-    schema = json.loads((ROOT / "data" / "intent_schema.json").read_text())
+    schema = json.loads((ROOT / "data" / "intent_schema.json").read_text(encoding="utf-8"))
     assert sorted(i["name"] for i in schema["intents"]) == sorted(INTENT_NAMES)
     for item in schema["intents"]:
         for key in ("definition", "include", "exclude", "examples",
@@ -161,9 +161,12 @@ def test_golden_heldout_disjoint():
 
 
 def test_golden_sampled_from_corpus():
+    corpus_path = ROOT / "data" / "processed" / "amazon_threads.jsonl"
+    if not corpus_path.exists():
+        pytest.skip("amazon_threads.jsonl not present (large corpus is gitignored for CI)")
     import json as J
     tids = set()
-    with open(ROOT / "data" / "processed" / "amazon_threads.jsonl", encoding="utf-8") as f:
+    with open(corpus_path, encoding="utf-8") as f:
         for line in f:
             tids.add(str(J.loads(line)["thread_id"]))
     g = pd.read_csv(ROOT / "golden_set" / "golden_250.csv")

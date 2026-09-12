@@ -39,7 +39,7 @@
       ],
       "exclude": [
         "items damaged in transit (DELIVERY_DAMAGE)",
-        "refund timing questions with no return action (often still RETURN_REFUND — prefer this when money-back is the ask)"
+        "refund timing questions with no return action (often still RETURN_REFUND â€” prefer this when money-back is the ask)"
       ],
       "include": [
         "return and exchange requests",
@@ -57,7 +57,7 @@
       "examples": [
         "I can't log into my Amazon account.",
         "My account has been locked and I don't know why.",
-        "Someone got into my account � please help!",
+        "Someone got into my account – please help!",
         "I'm not receiving the OTP for sign-in."
       ],
       "exclude": [
@@ -126,7 +126,7 @@
       "examples": [
         "My package arrived completely crushed.",
         "The box was open and one item is missing.",
-        "Delivered to wrong address � neighbour has my package.",
+        "Delivered to wrong address – neighbour has my package.",
         "Product inside was broken, box looked fine."
       ],
       "exclude": [
